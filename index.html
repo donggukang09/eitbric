@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1d1d1f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>이이티브릭 서비스</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { max-width: 600px; margin: 0 auto; min-height: 100vh; background: #fff; }
+
+  /* 헤더 */
+  .header {
+    position: sticky; top: 0; z-index: 10;
+    background: #fff;
+    border-bottom: 0.5px solid #e0e0e0;
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 52px;
+  }
+  .header .title { font-size: 16px; font-weight: 600; }
+  .header .back {
+    background: none; border: none; color: #007aff;
+    font-size: 15px; padding: 4px 8px; margin: -4px -8px;
+    cursor: pointer;
+  }
+  .header .right { font-size: 13px; color: #6e6e73; }
+  .header .logout {
+    background: none; border: none; color: #6e6e73;
+    font-size: 13px; padding: 4px 8px; margin: -4px -8px;
+    cursor: pointer;
+  }
+
+  /* 컨텐츠 */
+  .content { padding: 16px; }
+  .content.no-pad { padding: 0; }
+
+  /* 로그인 화면 */
+  .login-wrap {
+    padding: 60px 24px 40px;
+    text-align: center;
+  }
+  .login-wrap h1 {
+    font-size: 22px; font-weight: 600; margin: 0 0 6px;
+  }
+  .login-wrap .sub {
+    font-size: 13px; color: #6e6e73; margin: 0 0 40px;
+  }
+  .login-wrap label {
+    display: block; text-align: left;
+    font-size: 13px; color: #6e6e73; margin: 0 0 8px;
+  }
+  .login-wrap select, .login-wrap input {
+    width: 100%; padding: 14px 16px;
+    border: 0.5px solid #d0d0d0; border-radius: 10px;
+    font-size: 16px; background: #fff;
+    margin-bottom: 20px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .login-wrap select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236e6e73' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+  }
+  .login-wrap input[type="password"] {
+    text-align: center; letter-spacing: 8px; font-size: 20px;
+  }
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: #1d1d1f; color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-primary:disabled { background: #c0c0c0; }
+  .btn-primary:active { opacity: 0.8; }
+
+  /* 검색 화면 */
+  .search-box {
+    padding: 12px 16px;
+    border-bottom: 0.5px solid #e0e0e0;
+    background: #fff; position: sticky; top: 53px; z-index: 9;
+  }
+  .search-box input {
+    width: 100%; padding: 12px 16px;
+    background: #f0f0f0; border: none; border-radius: 10px;
+    font-size: 16px;
+    -webkit-appearance: none; appearance: none;
+  }
+  .search-box input:focus { outline: none; background: #e8e8e8; }
+
+  .result-count {
+    padding: 10px 16px;
+    font-size: 12px; color: #6e6e73;
+  }
+
+  .list-item {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .list-item:active { background: #f5f5f7; }
+  .list-item .name {
+    font-size: 15px; font-weight: 500;
+    margin: 0 0 4px;
+    color: #1d1d1f;
+  }
+  .list-item .meta {
+    font-size: 12px; color: #6e6e73;
+    margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* 거래처 상세 */
+  .info-card {
+    background: #fff;
+    margin: 0;
+  }
+  .info-card .name {
+    font-size: 19px; font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .info-card .cust-id {
+    font-size: 12px; color: #6e6e73; margin: 0 0 16px;
+  }
+  .info-grid {
+    background: #f5f5f7;
+    border-radius: 10px;
+    padding: 4px 14px;
+    margin-bottom: 24px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #e8e8e8;
+    font-size: 13px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .label { color: #6e6e73; flex-shrink: 0; min-width: 70px; }
+  .info-row .value { color: #1d1d1f; text-align: right; word-break: break-all; }
+  .info-row .value a { color: #007aff; text-decoration: none; }
+
+  .section-title {
+    font-size: 13px; color: #6e6e73;
+    margin: 0 0 10px;
+    font-weight: 500;
+  }
+
+  .device-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .device-card:active { background: #f5f5f7; }
+  .device-card .top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px;
+  }
+  .device-card .model {
+    font-size: 15px; font-weight: 500;
+    margin: 0 0 3px;
+  }
+  .device-card .sn {
+    font-size: 11px; color: #6e6e73;
+    margin: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .device-card .badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #e6f1fb;
+    color: #0c447c;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .device-card .badge.shredder { background: #e1f5ee; color: #085041; }
+  .device-card .badge.inkjet { background: #faece7; color: #993c1d; }
+  .device-card .badge.laser { background: #eeedfe; color: #3c3489; }
+  .device-card .badge.none { background: #f0f0f0; color: #6e6e73; }
+  .device-card .lease {
+    font-size: 11px; color: #6e6e73;
+    margin: 8px 0 0;
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .device-card.expired {
+    background: #fdf0f0;
+    border-color: #f0c5c5;
+  }
+  .lease-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 500;
+  }
+  .lease-badge.expired { background: #e24b4a; color: #fff; }
+  .lease-badge.soon { background: #faeed8; color: #854f0b; }
+  .lease-badge.normal { background: #f0f0f0; color: #6e6e73; }
+
+  /* 기기 상세 */
+  .device-header .model {
+    font-size: 18px; font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .device-header .sn {
+    font-size: 12px; color: #6e6e73;
+    margin: 0 0 16px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .history-item {
+    padding: 12px 0 12px 14px;
+    border-left: 2px solid #e0e0e0;
+    margin-bottom: 4px;
+  }
+  .history-item.recent { border-left-color: #007aff; }
+  .history-item .top {
+    display: flex; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .history-item .date { font-size: 13px; font-weight: 500; }
+  .history-item .worker { font-size: 12px; color: #6e6e73; }
+  .history-item .content { font-size: 13px; margin: 0 0 4px; }
+  .history-item .parts {
+    font-size: 12px; color: #6e6e73;
+    margin: 0;
+  }
+  .history-empty {
+    text-align: center;
+    color: #a0a0a5;
+    font-size: 13px;
+    padding: 32px 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #a0a0a5;
+    font-size: 14px;
+    padding: 60px 20px;
+  }
+
+  .loading {
+    text-align: center;
+    color: #6e6e73;
+    font-size: 13px;
+    padding: 40px 20px;
+  }
+  .loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #6e6e73;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: #fcebeb;
+    color: #a32d2d;
+    padding: 12px 16px;
+    margin: 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* 메인 메뉴 */
+  .menu-greeting {
+    padding: 24px 20px 8px;
+  }
+  .menu-greeting .hi {
+    font-size: 22px; font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .menu-greeting .sub {
+    font-size: 13px; color: #6e6e73;
+    margin: 0;
+  }
+  .menu-grid {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .menu-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+  }
+  .menu-card:active {
+    background: #f5f5f7;
+    transform: scale(0.98);
+  }
+  .menu-card.disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .menu-card .icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+  }
+  .menu-card .icon svg {
+    width: 20px; height: 20px;
+  }
+  .menu-card.search .icon { background: #e6f1fb; color: #185fa5; }
+  .menu-card.inspect .icon { background: #e1f5ee; color: #0f6e56; }
+  .menu-card.as .icon { background: #faece7; color: #993c1d; }
+  .menu-card.dash .icon { background: #eeedfe; color: #534ab7; }
+  .menu-card .label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1d1d1f;
+  }
+  .menu-card .badge-soon {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 10px;
+    color: #6e6e73;
+    background: #f0f0f0;
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+  .menu-card .badge-count {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-size: 11px;
+    color: #fff;
+    background: #e24b4a;
+    min-width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 11px;
+    padding: 0 6px;
+    font-weight: 600;
+  }
+
+  /* 대시보드 */
+  .dash-section {
+    padding: 16px;
+  }
+  .dash-section-title {
+    font-size: 13px;
+    color: #6e6e73;
+    margin: 0 0 10px;
+    font-weight: 500;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+  .stat-card:active { background: #e8e8ed; }
+  .stat-card.no-click { cursor: default; }
+  .stat-card.no-click:active { background: #f5f5f7; }
+  .stat-card .arrow {
+    position: absolute;
+    top: 14px; right: 14px;
+    color: #c0c0c5;
+    font-size: 14px;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: #6e6e73;
+    margin: 0 0 6px;
+  }
+  .stat-card .value {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .stat-card .unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: #6e6e73;
+    margin-left: 2px;
+  }
+  .stat-card.full {
+    grid-column: 1 / -1;
+  }
+  .stat-card.warning {
+    background: #faeed8;
+  }
+  .stat-card.warning .label { color: #854f0b; }
+  .stat-card.warning .value { color: #633806; }
+  .stat-card.danger {
+    background: #fdf0f0;
+  }
+  .stat-card.danger .label { color: #a32d2d; }
+  .stat-card.danger .value { color: #791f1f; }
+
+  .dash-list-item {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  .dash-list-item:active { background: #f5f5f7; }
+  .dash-list-item .row1 {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px;
+  }
+  .dash-list-item .company {
+    font-size: 14px; font-weight: 500;
+    margin: 0 0 2px;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dash-list-item .device {
+    font-size: 12px; color: #6e6e73;
+    margin: 0;
+  }
+  .dash-list-item .status-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .dash-list-item .status-tag.expired { background: #e24b4a; color: #fff; }
+  .dash-list-item .status-tag.soon { background: #faeed8; color: #854f0b; }
+  .dash-list-item .status-tag.normal { background: #f0f0f0; color: #6e6e73; }
+  .dash-list-item .end-date {
+    font-size: 11px; color: #a0a0a5;
+    margin: 4px 0 0;
+  }
+
+  /* 점검 등록 폼 */
+  .form-section {
+    padding: 16px;
+  }
+  .form-target {
+    background: #f5f5f7;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .form-target .company {
+    font-size: 14px; font-weight: 500; margin: 0 0 4px;
+  }
+  .form-target .device {
+    font-size: 12px; color: #6e6e73; margin: 0;
+  }
+  .form-field {
+    margin-bottom: 18px;
+  }
+  .form-field label {
+    display: block;
+    font-size: 12px;
+    color: #6e6e73;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .form-field input[type="date"],
+  .form-field input[type="text"],
+  .form-field select,
+  .form-field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 0.5px solid #d0d0d0;
+    border-radius: 10px;
+    font-size: 15px;
+    background: #fff;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+  }
+  .form-field select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236e6e73' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  .form-field textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+  .form-field input:focus,
+  .form-field select:focus,
+  .form-field textarea:focus {
+    outline: none;
+    border-color: #007aff;
+  }
+  .form-field .readonly {
+    padding: 12px 14px;
+    background: #f5f5f7;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #6e6e73;
+  }
+  .check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .check-list label {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+    color: #1d1d1f;
+    font-weight: 400;
+  }
+  .check-list label:active {
+    background: #f5f5f7;
+  }
+  .check-list label.checked {
+    background: #e6f1fb;
+    border-color: #378add;
+    color: #0c447c;
+  }
+  .check-list input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    accent-color: #007aff;
+  }
+  .check-empty {
+    text-align: center;
+    color: #a0a0a5;
+    font-size: 13px;
+    padding: 16px;
+    background: #f5f5f7;
+    border-radius: 10px;
+  }
+  .form-actions {
+    padding: 16px;
+    border-top: 0.5px solid #e0e0e0;
+    background: #fff;
+    position: sticky;
+    bottom: 0;
+  }
+  .success-screen {
+    text-align: center;
+    padding: 80px 20px;
+  }
+  .success-screen .check {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: #e1f5ee;
+    color: #0f6e56;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 32px;
+  }
+  .success-screen h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  .success-screen p {
+    font-size: 13px;
+    color: #6e6e73;
+    margin: 0 0 24px;
+  }
+
+  /* AS 접수 - 탭 */
+  .tab-bar {
+    display: flex;
+    background: #fff;
+    border-bottom: 0.5px solid #e0e0e0;
+    position: sticky;
+    top: 53px;
+    z-index: 9;
+  }
+  .tab-bar .tab {
+    flex: 1;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 14px;
+    color: #6e6e73;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 400;
+  }
+  .tab-bar .tab.active {
+    color: #1d1d1f;
+    border-bottom-color: #1d1d1f;
+    font-weight: 500;
+  }
+  .tab-bar .tab .count {
+    margin-left: 4px;
+    font-size: 11px;
+    color: #a0a0a5;
+  }
+  .tab-bar .tab.active .count {
+    color: #6e6e73;
+  }
+
+  /* AS 카드 */
+  .as-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .as-card:active { background: #f5f5f7; }
+  .as-card .as-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px; margin-bottom: 6px;
+  }
+  .as-card .as-id {
+    font-size: 11px; color: #a0a0a5;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .as-card .as-cat {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-weight: 500;
+  }
+  .as-card .as-cat.AS건 { background: #faece7; color: #993c1d; }
+  .as-card .as-cat.정기점검 { background: #e1f5ee; color: #085041; }
+  .as-card .as-company {
+    font-size: 15px; font-weight: 500;
+    margin: 2px 0 6px;
+  }
+  .as-card .as-req {
+    font-size: 13px;
+    color: #1d1d1f;
+    margin: 0 0 8px;
+    line-height: 1.5;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .as-card .as-bottom {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #6e6e73;
+  }
+  .as-card .as-visit {
+    color: #6e6e73;
+  }
+  .as-card .as-assignee {
+    color: #6e6e73;
+  }
+
+  /* AS 신규 등록 - FAB */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 50%;
+    transform: translateX(296px);
+    width: 56px; height: 56px;
+    border-radius: 28px;
+    background: #1d1d1f;
+    color: #fff;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fab:active { background: #333; }
+  @media (max-width: 632px) {
+    .fab {
+      right: 16px;
+      transform: none;
+    }
+  }
+
+  /* AS 상세 - 상태 변경 버튼 */
+  .status-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .status-btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: 0.5px solid #e0e0e0;
+    background: #fff;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #6e6e73;
+    cursor: pointer;
+    text-align: center;
+    font-family: inherit;
+  }
+  .status-btn:active { background: #f5f5f7; }
+  .status-btn.active {
+    background: #1d1d1f;
+    color: #fff;
+    border-color: #1d1d1f;
+    font-weight: 500;
+  }
+
+  .device-multi-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .device-multi-card.selected {
+    background: #e6f1fb;
+    border-color: #378add;
+  }
+  .device-multi-card input[type="checkbox"] {
+    width: 20px; height: 20px;
+    accent-color: #007aff;
+    flex-shrink: 0;
+  }
+  .device-multi-card .info {
+    flex: 1; min-width: 0;
+  }
+  .device-multi-card .model {
+    font-size: 14px; font-weight: 500;
+    margin: 0 0 2px;
+  }
+  .device-multi-card .sn {
+    font-size: 11px; color: #6e6e73;
+    margin: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .select-all-btn {
+    background: none;
+    border: 0.5px solid #d0d0d0;
+    color: #007aff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+  // ============================================
+  // 설정
+  // ============================================
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzac2ad2YwG8OYzvG6DqKydDtplKP1Mcdbj9aTMQ56S55Q3tj1thRCK8c0BDZm_Ns3F/exec';
+
+  // ============================================
+  // 상태
+  // ============================================
+  const state = {
+    user: null,
+    screen: 'login',
+    searchQuery: '',
+    searchResults: null,
+    currentCustomer: null,
+    currentDevice: null,
+  };
+
+  // 로그인 상태 유지 (브라우저 새로고침해도 유지)
+  try {
+    const saved = sessionStorage.getItem('eitbric_user');
+    if (saved) {
+      state.user = JSON.parse(saved);
+      state.screen = 'menu';
+    }
+  } catch (e) {}
+
+  // ============================================
+  // API 호출
+  // ============================================
+  async function callApi(action, params = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.set('action', action);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error('네트워크 오류');
+    return await res.json();
+  }
+
+  // ============================================
+  // 라우팅
+  // ============================================
+  function go(screen, data = {}) {
+    state.screen = screen;
+    Object.assign(state, data);
+    render();
+  }
+
+  // ============================================
+  // 렌더링
+  // ============================================
+  function render() {
+    const app = document.getElementById('app');
+    if (state.screen === 'login') {
+      app.innerHTML = renderLogin();
+      bindLogin();
+    } else if (state.screen === 'menu') {
+      app.innerHTML = renderMenu();
+      bindMenu();
+    } else if (state.screen === 'search') {
+      app.innerHTML = renderSearch();
+      bindSearch();
+    } else if (state.screen === 'customer') {
+      app.innerHTML = renderCustomer();
+      bindCustomer();
+    } else if (state.screen === 'device') {
+      app.innerHTML = renderDevice();
+      bindDevice();
+    } else if (state.screen === 'dashboard') {
+      app.innerHTML = renderDashboard();
+      bindDashboard();
+    } else if (state.screen === 'dashList') {
+      app.innerHTML = renderDashList();
+      bindDashList();
+    } else if (state.screen === 'inspectSearch') {
+      app.innerHTML = renderInspectSearch();
+      bindInspectSearch();
+    } else if (state.screen === 'inspectDevicePick') {
+      app.innerHTML = renderInspectDevicePick();
+      bindInspectDevicePick();
+    } else if (state.screen === 'inspectForm') {
+      app.innerHTML = renderInspectForm();
+      bindInspectForm();
+    } else if (state.screen === 'asList') {
+      app.innerHTML = renderAsList();
+      bindAsList();
+    } else if (state.screen === 'asNewSearch') {
+      app.innerHTML = renderAsNewSearch();
+      bindAsNewSearch();
+    } else if (state.screen === 'asNewForm') {
+      app.innerHTML = renderAsNewForm();
+      bindAsNewForm();
+    } else if (state.screen === 'asDetail') {
+      app.innerHTML = renderAsDetail();
+      bindAsDetail();
+    }
+  }
+
+  // ============================================
+  // 화면 1: 로그인
+  // ============================================
+  function renderLogin() {
+    return `
+      <div class="login-wrap">
+        <h1>이이티브릭</h1>
+        <p class="sub">서비스 관리 시스템</p>
+        <label>담당자 선택</label>
+        <select id="staff-select">
+          <option value="">불러오는 중...</option>
+        </select>
+        <label>PIN 4자리</label>
+        <input type="password" id="pin-input" inputmode="numeric" maxlength="4" placeholder="••••">
+        <button class="btn-primary" id="login-btn" disabled>로그인</button>
+        <p id="login-error" style="color:#a32d2d; font-size:13px; margin-top:14px; min-height:18px;"></p>
+      </div>
+    `;
+  }
+
+  async function bindLogin() {
+    const sel = document.getElementById('staff-select');
+    const pin = document.getElementById('pin-input');
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+
+    // 담당자 목록 로드
+    try {
+      const data = await callApi('staff');
+      if (data.staff && data.staff.length > 0) {
+        sel.innerHTML = '<option value="">선택하세요</option>' +
+          data.staff.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
+      } else {
+        sel.innerHTML = '<option value="">담당자가 없습니다</option>';
+      }
+    } catch (e) {
+      sel.innerHTML = '<option value="">불러오기 실패</option>';
+      err.textContent = '서버 연결 실패: ' + e.message;
+    }
+
+    function checkValid() {
+      btn.disabled = !(sel.value && pin.value.length === 4);
+    }
+    sel.addEventListener('change', checkValid);
+    pin.addEventListener('input', () => {
+      pin.value = pin.value.replace(/[^0-9]/g, '');
+      checkValid();
+    });
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      err.textContent = '';
+      try {
+        const result = await callApi('login', { name: sel.value, pin: pin.value });
+        if (result.success) {
+          state.user = { name: result.name };
+          try { sessionStorage.setItem('eitbric_user', JSON.stringify(state.user)); } catch (e) {}
+          go('menu');
+        } else {
+          err.textContent = 'PIN이 일치하지 않습니다';
+          btn.disabled = false;
+          pin.value = '';
+        }
+      } catch (e) {
+        err.textContent = '로그인 실패: ' + e.message;
+        btn.disabled = false;
+      }
+    });
+
+    pin.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !btn.disabled) btn.click();
+    });
+  }
+
+  // ============================================
+  // 화면 2: 메인 메뉴
+  // ============================================
+  function renderMenu() {
+    return `
+      <div class="header">
+        <div class="title">이이티브릭</div>
+        <button class="logout" id="logout-btn">로그아웃</button>
+      </div>
+      <div class="menu-greeting">
+        <p class="hi">${escapeHtml(state.user.name)}님, 안녕하세요</p>
+        <p class="sub">무엇을 하시겠어요?</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card search" data-go="search">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </div>
+          <div class="label">거래처 검색</div>
+        </div>
+        <div class="menu-card dash" data-go="dashboard">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+            </svg>
+          </div>
+          <div class="label">거래처 대시보드</div>
+        </div>
+        <div class="menu-card inspect" data-go="inspectStart">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <div class="label">점검 등록</div>
+        </div>
+        <div class="menu-card as" data-go="asList">
+          <div id="as-badge"></div>
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <div class="label">AS 접수</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindMenu() {
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      state.user = null;
+      state.searchQuery = '';
+      state.searchResults = null;
+      try { sessionStorage.removeItem('eitbric_user'); } catch (e) {}
+      go('login');
+    });
+
+    // AS 대기중 건수 비동기 로드
+    (async () => {
+      try {
+        const data = await callApi('asList', { status: '대기중' });
+        const count = (data.items || []).length;
+        const badge = document.getElementById('as-badge');
+        if (badge && count > 0) {
+          badge.className = 'badge-count';
+          badge.textContent = count;
+        }
+      } catch (e) {}
+    })();
+    document.querySelectorAll('.menu-card[data-go]').forEach(el => {
+      el.addEventListener('click', () => {
+        const screen = el.getAttribute('data-go');
+        if (screen === 'dashboard') {
+          loadDashboard();
+        } else if (screen === 'inspectStart') {
+          // 점검 등록 시작 - 검색 화면으로 진입
+          state.inspectFlow = true;
+          state.searchQuery = '';
+          state.searchResults = null;
+          go('inspectSearch');
+        } else if (screen === 'asList') {
+          loadAsList('대기중');
+        } else {
+          go(screen);
+        }
+      });
+    });
+    document.querySelectorAll('.menu-card.disabled').forEach(el => {
+      el.addEventListener('click', () => {
+        showToast('준비 중인 기능입니다');
+      });
+    });
+  }
+
+  // ============================================
+  // 화면: 대시보드
+  // ============================================
+  function renderDashboard() {
+    const d = state.dashboard;
+    if (!d || d.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 메뉴</button>
+          <div class="title">거래처 대시보드</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (d.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 메뉴</button>
+          <div class="title">거래처 대시보드</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(d.error)}</div>
+      `;
+    }
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 메뉴</button>
+        <div class="title">거래처 대시보드</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="dash-section">
+        <p class="dash-section-title">현황 요약</p>
+        <div class="stat-grid">
+          <div class="stat-card full no-click">
+            <p class="label">총 거래처</p>
+            <p class="value">${formatNumber(d['총거래처수'])}<span class="unit">곳</span></p>
+          </div>
+        </div>
+
+        <p class="dash-section-title">기기 상태별 보기</p>
+        <div class="stat-grid">
+          <div class="stat-card" data-list="active">
+            <span class="arrow">›</span>
+            <p class="label">임대중 기기</p>
+            <p class="value">${formatNumber(d['임대중기기수'])}<span class="unit">대</span></p>
+          </div>
+          <div class="stat-card warning" data-list="soon">
+            <span class="arrow">›</span>
+            <p class="label">만료 임박 (D-30)</p>
+            <p class="value">${formatNumber(d['만료임박수'])}<span class="unit">대</span></p>
+          </div>
+          <div class="stat-card danger full" data-list="expired">
+            <span class="arrow">›</span>
+            <p class="label">만료된 기기</p>
+            <p class="value">${formatNumber(d['만료된기기수'])}<span class="unit">대</span></p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDashListItem(item, type) {
+    let tag = '';
+    if (type === 'soon') {
+      const days = item['남은일수'];
+      tag = `<span class="status-tag soon">${days === 0 ? '오늘' : 'D-' + days}</span>`;
+    } else if (type === 'expired') {
+      tag = `<span class="status-tag expired">${item['지난일수']}일 경과</span>`;
+    } else if (type === 'active') {
+      const days = item['남은일수'];
+      if (days !== null && days !== undefined) {
+        tag = `<span class="status-tag normal">${formatNumber(days)}일 남음</span>`;
+      }
+    }
+    return `
+      <div class="dash-list-item" data-id="${escapeHtml(item['고객번호'])}">
+        <div class="row1">
+          <div style="flex:1; min-width:0;">
+            <p class="company">${escapeHtml(item['상호'] || '(이름없음)')}</p>
+            <p class="device">${escapeHtml(item['기종'])} · ${escapeHtml(item['시리얼번호'])}</p>
+          </div>
+          ${tag}
+        </div>
+        <p class="end-date">종료일: ${escapeHtml(item['임대종료일'] || '미입력')}</p>
+      </div>
+    `;
+  }
+
+  async function loadDashboard() {
+    state.dashboard = { loading: true };
+    go('dashboard');
+    try {
+      const data = await callApi('dashboard');
+      if (data.error) throw new Error(data.error);
+      state.dashboard = data;
+      render();
+    } catch (e) {
+      state.dashboard = { error: e.message };
+      render();
+    }
+  }
+
+  function bindDashboard() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('menu');
+    });
+    document.querySelectorAll('.stat-card[data-list]').forEach(el => {
+      el.addEventListener('click', () => {
+        const listType = el.getAttribute('data-list');
+        state.dashListType = listType;
+        go('dashList');
+      });
+    });
+  }
+
+  // ============================================
+  // 화면: 대시보드 리스트 (임대중/만료임박/만료됨)
+  // ============================================
+  function renderDashList() {
+    const type = state.dashListType;
+    const d = state.dashboard;
+    if (!d || !d['임대중리스트']) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 대시보드</button>
+          <div class="title">기기 리스트</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+
+    let title, list, listKind;
+    if (type === 'active') {
+      title = '임대중 기기';
+      list = d['임대중리스트'] || [];
+      listKind = 'active';
+    } else if (type === 'soon') {
+      title = '만료 임박 기기';
+      list = d['만료임박리스트'] || [];
+      listKind = 'soon';
+    } else if (type === 'expired') {
+      title = '만료된 기기';
+      list = d['만료된리스트'] || [];
+      listKind = 'expired';
+    }
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 대시보드</button>
+        <div class="title">${escapeHtml(title)}</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="dash-section">
+        <p class="dash-section-title">총 ${formatNumber(list.length)}대</p>
+        ${list.length === 0
+          ? '<div class="empty-state" style="padding:40px 0;">없음</div>'
+          : list.map(item => renderDashListItem(item, listKind)).join('')
+        }
+      </div>
+    `;
+  }
+
+  function bindDashList() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('dashboard');
+    });
+    document.querySelectorAll('.dash-list-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        if (id) loadCustomer(id);
+      });
+    });
+  }
+
+  // ============================================
+  // 화면: 거래처 검색
+  // ============================================
+  function renderSearch() {
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 메뉴</button>
+        <div class="title">거래처 검색</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="상호 검색..." value="${escapeHtml(state.searchQuery || '')}" autocomplete="off">
+      </div>
+      <div id="search-results">
+        ${state.searchResults === null
+          ? '<div class="empty-state">상호를 검색해주세요</div>'
+          : renderSearchResults(state.searchResults)
+        }
+      </div>
+    `;
+  }
+
+  function renderSearchResults(results) {
+    if (results.length === 0) {
+      return '<div class="empty-state">검색 결과가 없습니다</div>';
+    }
+    return `
+      <p class="result-count">검색 결과 ${results.length}건</p>
+      ${results.map(r => `
+        <div class="list-item" data-id="${escapeHtml(r['고객번호'])}">
+          <p class="name">${escapeHtml(r['상호'])}</p>
+          <p class="meta">${escapeHtml(r['주소'] || '주소 없음')}</p>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function bindSearch() {
+    const input = document.getElementById('search-input');
+    const resultDiv = document.getElementById('search-results');
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('menu');
+    });
+
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      state.searchQuery = q;
+      if (!q) {
+        state.searchResults = null;
+        resultDiv.innerHTML = '<div class="empty-state">상호를 검색해주세요</div>';
+        return;
+      }
+      resultDiv.innerHTML = '<div class="loading">검색 중</div>';
+      timer = setTimeout(async () => {
+        try {
+          const data = await callApi('search', { q: q });
+          state.searchResults = data.customers || [];
+          resultDiv.innerHTML = renderSearchResults(state.searchResults);
+          bindResultClicks();
+        } catch (e) {
+          resultDiv.innerHTML = '<div class="error-msg">검색 실패: ' + escapeHtml(e.message) + '</div>';
+        }
+      }, 300);
+    });
+
+    function bindResultClicks() {
+      resultDiv.querySelectorAll('.list-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.getAttribute('data-id');
+          loadCustomer(id);
+        });
+      });
+    }
+    bindResultClicks();
+
+    // 자동 포커스 (검색어 없을 때)
+    if (!state.searchQuery) {
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+
+  // ============================================
+  // 화면: 점검 등록 - 거래처 검색
+  // ============================================
+  function renderInspectSearch() {
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 메뉴</button>
+        <div class="title">점검 등록 · 거래처 선택</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="상호 검색..." value="${escapeHtml(state.searchQuery || '')}" autocomplete="off">
+      </div>
+      <div id="search-results">
+        ${state.searchResults === null
+          ? '<div class="empty-state">점검할 거래처를 검색하세요</div>'
+          : renderSearchResults(state.searchResults)
+        }
+      </div>
+    `;
+  }
+
+  function bindInspectSearch() {
+    const input = document.getElementById('search-input');
+    const resultDiv = document.getElementById('search-results');
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      state.inspectFlow = false;
+      go('menu');
+    });
+
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      state.searchQuery = q;
+      if (!q) {
+        state.searchResults = null;
+        resultDiv.innerHTML = '<div class="empty-state">점검할 거래처를 검색하세요</div>';
+        return;
+      }
+      resultDiv.innerHTML = '<div class="loading">검색 중</div>';
+      timer = setTimeout(async () => {
+        try {
+          const data = await callApi('search', { q: q });
+          state.searchResults = data.customers || [];
+          resultDiv.innerHTML = renderSearchResults(state.searchResults);
+          bindResultClicks();
+        } catch (e) {
+          resultDiv.innerHTML = '<div class="error-msg">검색 실패: ' + escapeHtml(e.message) + '</div>';
+        }
+      }, 300);
+    });
+
+    function bindResultClicks() {
+      resultDiv.querySelectorAll('.list-item').forEach(el => {
+        el.addEventListener('click', async () => {
+          const id = el.getAttribute('data-id');
+          await loadCustomerForInspect(id);
+        });
+      });
+    }
+    bindResultClicks();
+
+    if (!state.searchQuery) {
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+
+  async function loadCustomerForInspect(id) {
+    try {
+      const data = await callApi('customer', { id: id });
+      if (data.error) throw new Error(data.error);
+      state.inspectCustomer = data.customer;
+      state.inspectDevices = data.devices || [];
+      go('inspectDevicePick');
+    } catch (e) {
+      showToast('불러오기 실패: ' + e.message);
+    }
+  }
+
+  // ============================================
+  // 화면: 점검 등록 - 기기 선택
+  // ============================================
+  function renderInspectDevicePick() {
+    const cust = state.inspectCustomer;
+    const devices = state.inspectDevices || [];
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 거래처 선택</button>
+        <div class="title">기기 선택</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="content">
+        <div class="form-target">
+          <p class="company">${escapeHtml(cust['상호'] || '')}</p>
+          <p class="device">고객번호: ${escapeHtml(cust['고객번호'] || '')}</p>
+        </div>
+        <p class="section-title">점검할 기기를 선택하세요 (${devices.length}대)</p>
+        ${devices.length === 0
+          ? '<div class="empty-state" style="padding:20px 0;">등록된 기기가 없습니다</div>'
+          : devices.map(d => renderDeviceCardForPick(d)).join('')
+        }
+      </div>
+    `;
+  }
+
+  function renderDeviceCardForPick(d) {
+    const sn = d['시리얼번호'] || '';
+    const noSn = !sn || sn === '[시리얼번호없음]';
+    return `
+      <div class="device-card" data-sn="${escapeHtml(sn)}" data-model="${escapeHtml(d['기종'] || '')}" ${noSn ? 'data-nosn="1"' : ''}>
+        <div class="top">
+          <div style="flex:1; min-width:0;">
+            <p class="model">${escapeHtml(d['기종'] || '기종 미상')}</p>
+            <p class="sn">S/N: ${escapeHtml(sn)}</p>
+          </div>
+          <span style="font-size: 18px; color: #c0c0c5;">›</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindInspectDevicePick() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('inspectSearch');
+    });
+    document.querySelectorAll('.device-card').forEach(el => {
+      el.addEventListener('click', () => {
+        if (el.getAttribute('data-nosn') === '1') {
+          showToast('시리얼번호가 없는 기기는 점검 등록할 수 없습니다');
+          return;
+        }
+        const sn = el.getAttribute('data-sn');
+        const model = el.getAttribute('data-model');
+        state.inspectDevice = { sn: sn, model: model };
+        loadInspectForm();
+      });
+    });
+  }
+
+  // ============================================
+  // 화면: 점검 등록 - 입력 폼
+  // ============================================
+  async function loadInspectForm() {
+    state.inspectOptions = { loading: true };
+    go('inspectForm');
+    try {
+      const data = await callApi('inspectOptions');
+      if (data.error) throw new Error(data.error);
+      state.inspectOptions = data;
+      render();
+    } catch (e) {
+      state.inspectOptions = { error: e.message };
+      render();
+    }
+  }
+
+  function renderInspectForm() {
+    const opts = state.inspectOptions;
+    if (!opts || opts.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 기기 선택</button>
+          <div class="title">점검 등록</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (opts.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 기기 선택</button>
+          <div class="title">점검 등록</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(opts.error)}</div>
+      `;
+    }
+    if (opts.saved) {
+      return `
+        <div class="header">
+          <div style="width:48px;"></div>
+          <div class="title">등록 완료</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="success-screen">
+          <div class="check">✓</div>
+          <h2>점검이 등록되었습니다</h2>
+          <p>점검ID: ${escapeHtml(opts.savedId || '')}</p>
+          <button class="btn-primary" id="done-btn" style="max-width: 200px;">메뉴로 돌아가기</button>
+        </div>
+      `;
+    }
+
+    const cust = state.inspectCustomer;
+    const dev = state.inspectDevice;
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' +
+      ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + today.getDate()).slice(-2);
+
+    const items = opts.items || [];
+    const parts = opts.parts || [];
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 기기 선택</button>
+        <div class="title">점검 등록</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="form-section">
+        <div class="form-target">
+          <p class="company">${escapeHtml(cust['상호'] || '')}</p>
+          <p class="device">${escapeHtml(dev.model || '')} · ${escapeHtml(dev.sn || '')}</p>
+        </div>
+
+        <div class="form-field">
+          <label>점검일</label>
+          <input type="date" id="f-date" value="${todayStr}">
+        </div>
+
+        <div class="form-field">
+          <label>점검자</label>
+          <div class="readonly">${escapeHtml(state.user.name)}</div>
+        </div>
+
+        <div class="form-field">
+          <label>점검 유형</label>
+          <select id="f-type">
+            <option value="방문점검">방문점검</option>
+            <option value="벤치점검">벤치점검</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>점검 항목 (다중 선택)</label>
+          <div class="check-list" id="f-items">
+            ${items.length === 0
+              ? '<div class="check-empty">점검항목 탭에 등록된 항목이 없습니다</div>'
+              : items.map((it, i) => `
+                <label data-idx="${i}">
+                  <input type="checkbox" value="${escapeHtml(it)}">
+                  <span>${escapeHtml(it)}</span>
+                </label>
+              `).join('')
+            }
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>사용 부품 (다중 선택)</label>
+          <div class="check-list" id="f-parts">
+            ${parts.length === 0
+              ? '<div class="check-empty">사용부품 탭에 등록된 부품이 없습니다</div>'
+              : parts.map((p, i) => `
+                <label data-idx="${i}">
+                  <input type="checkbox" value="${escapeHtml(p)}">
+                  <span>${escapeHtml(p)}</span>
+                </label>
+              `).join('')
+            }
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>기타 사항</label>
+          <textarea id="f-memo" placeholder="특이사항이 있으면 입력하세요"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" id="save-btn">저장하기</button>
+      </div>
+    `;
+  }
+
+  function bindInspectForm() {
+    const opts = state.inspectOptions;
+
+    // 로딩/에러 상태일 때는 back 버튼만 있음
+    if (!opts || opts.loading || opts.error) {
+      const back = document.getElementById('back-btn');
+      if (back) {
+        back.addEventListener('click', () => {
+          go('inspectDevicePick');
+        });
+      }
+      return;
+    }
+
+    if (opts.saved) {
+      document.getElementById('done-btn').addEventListener('click', () => {
+        // 상태 정리
+        state.inspectFlow = false;
+        state.inspectCustomer = null;
+        state.inspectDevices = null;
+        state.inspectDevice = null;
+        state.inspectOptions = null;
+        go('menu');
+      });
+      return;
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('inspectDevicePick');
+    });
+
+    // 체크박스 visual feedback
+    document.querySelectorAll('.check-list label').forEach(label => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      cb.addEventListener('change', () => {
+        if (cb.checked) label.classList.add('checked');
+        else label.classList.remove('checked');
+      });
+    });
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const date = document.getElementById('f-date').value;
+      const type = document.getElementById('f-type').value;
+      const memo = document.getElementById('f-memo').value;
+
+      if (!date) {
+        showToast('점검일을 입력하세요');
+        return;
+      }
+
+      const checkedItems = Array.from(
+        document.querySelectorAll('#f-items input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
+      const checkedParts = Array.from(
+        document.querySelectorAll('#f-parts input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
+
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const result = await callApi('saveInspect', {
+          date: date,
+          worker: state.user.name,
+          type: type,
+          customerId: state.inspectCustomer['고객번호'] || '',
+          customerName: state.inspectCustomer['상호'] || '',
+          sn: state.inspectDevice.sn,
+          model: state.inspectDevice.model,
+          items: checkedItems.join(', '),
+          parts: checkedParts.join(', '),
+          memo: memo
+        });
+        if (result.success) {
+          state.inspectOptions.saved = true;
+          state.inspectOptions.savedId = result['점검ID'];
+          render();
+        } else {
+          showToast('저장 실패: ' + (result.error || '알 수 없는 오류'));
+          btn.disabled = false;
+          btn.textContent = '저장하기';
+        }
+      } catch (e) {
+        showToast('저장 실패: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = '저장하기';
+      }
+    });
+  }
+
+  // ============================================
+  // 화면: AS 접수 - 목록
+  // ============================================
+  async function loadAsList(status) {
+    state.asListStatus = status || '대기중';
+    state.asListData = { loading: true };
+    go('asList');
+    try {
+      // 모든 상태를 한 번에 받아서 카운트도 보여주기 위해 빈 필터
+      const data = await callApi('asList', {});
+      if (data.error) throw new Error(data.error);
+      state.asListData = data;
+      render();
+    } catch (e) {
+      state.asListData = { error: e.message };
+      render();
+    }
+  }
+
+  function renderAsList() {
+    const data = state.asListData;
+    const status = state.asListStatus || '대기중';
+
+    if (!data || data.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 메뉴</button>
+          <div class="title">AS 접수</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (data.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 메뉴</button>
+          <div class="title">AS 접수</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(data.error)}</div>
+      `;
+    }
+
+    const all = data.items || [];
+    const counts = { '대기중': 0, '진행중': 0, '완료': 0 };
+    all.forEach(it => {
+      const s = it['상태'] || '대기중';
+      if (counts[s] !== undefined) counts[s]++;
+    });
+    const filtered = all.filter(it => (it['상태'] || '대기중') === status);
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 메뉴</button>
+        <div class="title">AS 접수</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab ${status === '대기중' ? 'active' : ''}" data-status="대기중">대기중<span class="count">${counts['대기중']}</span></div>
+        <div class="tab ${status === '진행중' ? 'active' : ''}" data-status="진행중">진행중<span class="count">${counts['진행중']}</span></div>
+        <div class="tab ${status === '완료' ? 'active' : ''}" data-status="완료">완료<span class="count">${counts['완료']}</span></div>
+      </div>
+      <div class="content">
+        ${filtered.length === 0
+          ? '<div class="empty-state">' + escapeHtml(status) + '인 접수가 없습니다</div>'
+          : filtered.map(it => renderAsCard(it)).join('')
+        }
+      </div>
+      <button class="fab" id="fab-new" title="신규 접수">+</button>
+    `;
+  }
+
+  function renderAsCard(it) {
+    const cat = it['분류'] || '';
+    const catClass = cat === 'AS건' ? 'AS건' : (cat === '정기점검' ? '정기점검' : '');
+    return `
+      <div class="as-card" data-id="${escapeHtml(it['접수ID'])}">
+        <div class="as-top">
+          <span class="as-id">${escapeHtml(it['접수ID'] || '')}</span>
+          ${cat ? `<span class="as-cat ${catClass}">${escapeHtml(cat)}</span>` : ''}
+        </div>
+        <p class="as-company">${escapeHtml(it['상호'] || '')}</p>
+        <p class="as-req">${escapeHtml(it['요청사항'] || '(요청사항 없음)')}</p>
+        <div class="as-bottom">
+          <span class="as-visit">방문: ${escapeHtml(it['방문요청일시'] || '미정')}</span>
+          <span class="as-assignee">${escapeHtml(it['담당기사'] || '미배정')}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindAsList() {
+    const data = state.asListData;
+    document.getElementById('back-btn').addEventListener('click', () => go('menu'));
+
+    if (!data || data.loading || data.error) return;
+
+    document.querySelectorAll('.tab-bar .tab').forEach(el => {
+      el.addEventListener('click', () => {
+        state.asListStatus = el.getAttribute('data-status');
+        render();
+      });
+    });
+
+    document.querySelectorAll('.as-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        loadAsDetail(id);
+      });
+    });
+
+    const fab = document.getElementById('fab-new');
+    if (fab) {
+      fab.addEventListener('click', () => {
+        state.asNewCustomer = null;
+        state.asNewDevices = null;
+        state.searchQuery = '';
+        state.searchResults = null;
+        go('asNewSearch');
+      });
+    }
+  }
+
+  // ============================================
+  // 화면: AS 신규 - 거래처 검색
+  // ============================================
+  function renderAsNewSearch() {
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 목록</button>
+        <div class="title">AS 신규 · 거래처 선택</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="상호 검색..." value="${escapeHtml(state.searchQuery || '')}" autocomplete="off">
+      </div>
+      <div id="search-results">
+        ${state.searchResults === null
+          ? '<div class="empty-state">접수할 거래처를 검색하세요</div>'
+          : renderSearchResults(state.searchResults)
+        }
+      </div>
+    `;
+  }
+
+  function bindAsNewSearch() {
+    const input = document.getElementById('search-input');
+    const resultDiv = document.getElementById('search-results');
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('asList');
+    });
+
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      state.searchQuery = q;
+      if (!q) {
+        state.searchResults = null;
+        resultDiv.innerHTML = '<div class="empty-state">접수할 거래처를 검색하세요</div>';
+        return;
+      }
+      resultDiv.innerHTML = '<div class="loading">검색 중</div>';
+      timer = setTimeout(async () => {
+        try {
+          const data = await callApi('search', { q: q });
+          state.searchResults = data.customers || [];
+          resultDiv.innerHTML = renderSearchResults(state.searchResults);
+          bindResultClicks();
+        } catch (e) {
+          resultDiv.innerHTML = '<div class="error-msg">검색 실패: ' + escapeHtml(e.message) + '</div>';
+        }
+      }, 300);
+    });
+
+    function bindResultClicks() {
+      resultDiv.querySelectorAll('.list-item').forEach(el => {
+        el.addEventListener('click', async () => {
+          const id = el.getAttribute('data-id');
+          await loadCustomerForAs(id);
+        });
+      });
+    }
+    bindResultClicks();
+
+    if (!state.searchQuery) {
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+
+  async function loadCustomerForAs(id) {
+    try {
+      const [custData, staffData] = await Promise.all([
+        callApi('customer', { id: id }),
+        callApi('staff')
+      ]);
+      if (custData.error) throw new Error(custData.error);
+      state.asNewCustomer = custData.customer;
+      state.asNewDevices = custData.devices || [];
+      state.asNewStaff = staffData.staff || [];
+      state.asNewSelectedSn = {}; // 선택된 시리얼번호 맵
+      go('asNewForm');
+    } catch (e) {
+      showToast('불러오기 실패: ' + e.message);
+    }
+  }
+
+  // ============================================
+  // 화면: AS 신규 - 등록 폼
+  // ============================================
+  function renderAsNewForm() {
+    if (state.asNewSaved) {
+      return `
+        <div class="header">
+          <div style="width:48px;"></div>
+          <div class="title">접수 완료</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="success-screen">
+          <div class="check">✓</div>
+          <h2>AS 접수가 등록되었습니다</h2>
+          <p>접수ID: ${escapeHtml(state.asNewSavedId || '')}</p>
+          <button class="btn-primary" id="done-btn" style="max-width: 200px;">목록으로</button>
+        </div>
+      `;
+    }
+
+    const cust = state.asNewCustomer;
+    const devices = state.asNewDevices || [];
+    const staff = state.asNewStaff || [];
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 거래처 선택</button>
+        <div class="title">AS 신규 등록</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="form-section">
+        <div class="form-target">
+          <p class="company">${escapeHtml(cust['상호'] || '')}</p>
+          <p class="device">고객번호: ${escapeHtml(cust['고객번호'] || '')}</p>
+        </div>
+
+        <div class="form-field">
+          <label>분류</label>
+          <select id="f-category">
+            <option value="AS건">AS건</option>
+            <option value="정기점검">정기점검</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>접수자</label>
+          <div class="readonly">${escapeHtml(state.user.name)}</div>
+        </div>
+
+        <div class="form-field">
+          <label>담당기사</label>
+          <select id="f-assignee">
+            <option value="">미배정</option>
+            ${staff.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>대상 기기 (${devices.length}대 중 선택)</label>
+          ${devices.length === 0
+            ? '<div class="check-empty">등록된 기기가 없습니다</div>'
+            : `
+              <button type="button" class="select-all-btn" id="select-all-btn">전체 선택</button>
+              ${devices.map((d, i) => {
+                const sn = d['시리얼번호'] || '';
+                const noSn = !sn || sn === '[시리얼번호없음]';
+                return `
+                  <div class="device-multi-card ${noSn ? '' : ''}" data-idx="${i}" ${noSn ? 'data-nosn="1"' : ''}>
+                    <input type="checkbox" id="dev-${i}" ${noSn ? 'disabled' : ''}>
+                    <div class="info">
+                      <p class="model">${escapeHtml(d['기종'] || '기종 미상')}</p>
+                      <p class="sn">${escapeHtml(sn)}</p>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            `
+          }
+        </div>
+
+        <div class="form-field">
+          <label>요청사항</label>
+          <textarea id="f-request" placeholder="고객 요청 내용을 입력하세요"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label>방문 요청일</label>
+          <input type="date" id="f-visit-date">
+        </div>
+
+        <div class="form-field">
+          <label>방문 시간대</label>
+          <select id="f-visit-time-type">
+            <option value="">선택안함</option>
+            <option value="오전중">오전중</option>
+            <option value="오후중">오후중</option>
+            <option value="custom">시간 직접 입력</option>
+          </select>
+          <input type="time" id="f-visit-time" style="display:none; margin-top:8px;">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" id="save-btn">접수 등록</button>
+      </div>
+    `;
+  }
+
+  function bindAsNewForm() {
+    if (state.asNewSaved) {
+      document.getElementById('done-btn').addEventListener('click', () => {
+        state.asNewSaved = false;
+        state.asNewSavedId = null;
+        state.asNewCustomer = null;
+        state.asNewDevices = null;
+        state.asNewSelectedSn = {};
+        loadAsList(state.asListStatus || '대기중');
+      });
+      return;
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      go('asNewSearch');
+    });
+
+    // 기기 선택
+    document.querySelectorAll('.device-multi-card').forEach(el => {
+      const cb = el.querySelector('input[type="checkbox"]');
+      if (!cb || cb.disabled) return;
+      el.addEventListener('click', (ev) => {
+        if (ev.target !== cb) {
+          cb.checked = !cb.checked;
+        }
+        if (cb.checked) el.classList.add('selected');
+        else el.classList.remove('selected');
+      });
+    });
+
+    // 전체 선택
+    const selectAllBtn = document.getElementById('select-all-btn');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => {
+        const all = document.querySelectorAll('.device-multi-card input[type="checkbox"]:not(:disabled)');
+        const allChecked = Array.from(all).every(cb => cb.checked);
+        all.forEach(cb => {
+          cb.checked = !allChecked;
+          const card = cb.closest('.device-multi-card');
+          if (cb.checked) card.classList.add('selected');
+          else card.classList.remove('selected');
+        });
+        selectAllBtn.textContent = allChecked ? '전체 선택' : '전체 해제';
+      });
+    }
+
+    // 시간대 선택 시 시간 입력 토글
+    const timeType = document.getElementById('f-visit-time-type');
+    const timeInput = document.getElementById('f-visit-time');
+    timeType.addEventListener('change', () => {
+      if (timeType.value === 'custom') {
+        timeInput.style.display = 'block';
+      } else {
+        timeInput.style.display = 'none';
+        timeInput.value = '';
+      }
+    });
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const category = document.getElementById('f-category').value;
+      const assignee = document.getElementById('f-assignee').value;
+      const request = document.getElementById('f-request').value;
+      const visitDate = document.getElementById('f-visit-date').value;
+      const visitTimeType = document.getElementById('f-visit-time-type').value;
+      const visitTime = document.getElementById('f-visit-time').value;
+
+      // 선택된 기기들
+      const selectedSns = [];
+      const selectedModels = [];
+      document.querySelectorAll('.device-multi-card input[type="checkbox"]:checked').forEach(cb => {
+        const card = cb.closest('.device-multi-card');
+        const idx = parseInt(card.getAttribute('data-idx'));
+        const dev = state.asNewDevices[idx];
+        selectedSns.push(dev['시리얼번호'] || '');
+        selectedModels.push(dev['기종'] || '');
+      });
+
+      if (selectedSns.length === 0) {
+        showToast('대상 기기를 선택하세요');
+        return;
+      }
+      if (!request.trim()) {
+        showToast('요청사항을 입력하세요');
+        return;
+      }
+
+      // 방문일시 조합
+      let visitWhen = '';
+      if (visitDate) {
+        visitWhen = visitDate;
+        if (visitTimeType === '오전중') visitWhen += ' 오전중';
+        else if (visitTimeType === '오후중') visitWhen += ' 오후중';
+        else if (visitTimeType === 'custom' && visitTime) visitWhen += ' ' + visitTime;
+      }
+
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const result = await callApi('saveAs', {
+          receiver: state.user.name,
+          category: category,
+          customerId: state.asNewCustomer['고객번호'] || '',
+          customerName: state.asNewCustomer['상호'] || '',
+          snList: selectedSns.join(', '),
+          modelList: selectedModels.join(', '),
+          request: request,
+          visitWhen: visitWhen,
+          assignee: assignee
+        });
+        if (result.success) {
+          state.asNewSaved = true;
+          state.asNewSavedId = result['접수ID'];
+          render();
+        } else {
+          showToast('저장 실패: ' + (result.error || '알 수 없는 오류'));
+          btn.disabled = false;
+          btn.textContent = '접수 등록';
+        }
+      } catch (e) {
+        showToast('저장 실패: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = '접수 등록';
+      }
+    });
+  }
+
+  // ============================================
+  // 화면: AS 상세
+  // ============================================
+  async function loadAsDetail(asId) {
+    state.asDetailData = { loading: true, id: asId };
+    go('asDetail');
+    try {
+      const data = await callApi('asDetail', { asId: asId });
+      if (data.error) throw new Error(data.error);
+      state.asDetailData = data;
+      render();
+    } catch (e) {
+      state.asDetailData = { error: e.message };
+      render();
+    }
+  }
+
+  function renderAsDetail() {
+    const data = state.asDetailData;
+    if (!data || data.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 목록</button>
+          <div class="title">AS 접수 상세</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (data.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 목록</button>
+          <div class="title">AS 접수 상세</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(data.error)}</div>
+      `;
+    }
+
+    const it = data.item;
+    const status = it['상태'] || '대기중';
+    const snList = (it['시리얼번호목록'] || '').split(',').map(s => s.trim()).filter(Boolean);
+    const modelList = (it['기종목록'] || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    let deviceListHtml = '';
+    if (snList.length > 0) {
+      deviceListHtml = snList.map((sn, i) => `
+        <div style="padding:8px 0; border-bottom:0.5px solid #f0f0f0; font-size:13px;">
+          <div style="font-weight:500;">${escapeHtml(modelList[i] || '기종 미상')}</div>
+          <div style="font-size:11px; color:#6e6e73; font-family:ui-monospace,monospace;">${escapeHtml(sn)}</div>
+        </div>
+      `).join('');
+    }
+
+    const cat = it['분류'] || '';
+    const catClass = cat === 'AS건' ? 'AS건' : (cat === '정기점검' ? '정기점검' : '');
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 목록</button>
+        <div class="title">AS 접수 상세</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:11px; color:#a0a0a5; font-family:ui-monospace,monospace;">${escapeHtml(it['접수ID'])}</span>
+          ${cat ? `<span class="as-cat ${catClass}" style="font-size:10px; padding:2px 7px; border-radius:5px; font-weight:500;">${escapeHtml(cat)}</span>` : ''}
+        </div>
+        <p style="font-size:18px; font-weight:600; margin:0 0 16px;">${escapeHtml(it['상호'] || '')}</p>
+
+        <div class="info-grid">
+          ${infoRow('접수일시', it['접수일시'])}
+          ${infoRow('접수자', it['접수자'])}
+          ${infoRow('담당기사', it['담당기사'] || '미배정')}
+          ${infoRow('방문 요청일시', it['방문요청일시'] || '미정')}
+          ${it['처리완료일시'] ? infoRow('처리 완료', it['처리완료일시']) : ''}
+        </div>
+
+        <p class="section-title">대상 기기 ${snList.length}대</p>
+        <div style="background:#f5f5f7; border-radius:10px; padding:4px 14px; margin-bottom:20px;">
+          ${deviceListHtml || '<div style="padding:12px 0; color:#a0a0a5; font-size:13px;">없음</div>'}
+        </div>
+
+        <p class="section-title">요청사항</p>
+        <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:14px; margin-bottom:20px; font-size:14px; line-height:1.6; white-space:pre-wrap;">${escapeHtml(it['요청사항'] || '(없음)')}</div>
+
+        <p class="section-title">상태 변경</p>
+        <div class="status-btns">
+          <button class="status-btn ${status === '대기중' ? 'active' : ''}" data-status="대기중">대기중</button>
+          <button class="status-btn ${status === '진행중' ? 'active' : ''}" data-status="진행중">진행중</button>
+          <button class="status-btn ${status === '완료' ? 'active' : ''}" data-status="완료">완료</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindAsDetail() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      loadAsList(state.asListStatus || '대기중');
+    });
+
+    const data = state.asDetailData;
+    if (!data || data.loading || data.error) return;
+
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const newStatus = btn.getAttribute('data-status');
+        const currentStatus = data.item['상태'] || '대기중';
+        if (newStatus === currentStatus) return;
+
+        // 비활성화
+        document.querySelectorAll('.status-btn').forEach(b => b.disabled = true);
+
+        try {
+          const result = await callApi('updateAsStatus', {
+            asId: data.item['접수ID'],
+            status: newStatus
+          });
+          if (result.success) {
+            showToast('상태가 변경되었습니다');
+            // 다시 로드
+            loadAsDetail(data.item['접수ID']);
+          } else {
+            showToast('변경 실패: ' + (result.error || ''));
+            document.querySelectorAll('.status-btn').forEach(b => b.disabled = false);
+          }
+        } catch (e) {
+          showToast('변경 실패: ' + e.message);
+          document.querySelectorAll('.status-btn').forEach(b => b.disabled = false);
+        }
+      });
+    });
+  }
+
+  // ============================================
+  // 거래처 상세 로딩 (검색에서)
+  // ============================================
+  async function loadCustomer(id) {
+    state.customerFrom = state.screen; // 어디서 왔는지 기억
+    go('customer', { currentCustomer: { loading: true, id: id } });
+    try {
+      const data = await callApi('customer', { id: id });
+      if (data.error) throw new Error(data.error);
+      state.currentCustomer = data;
+      render();
+    } catch (e) {
+      state.currentCustomer = { error: e.message };
+      render();
+    }
+  }
+
+  // ============================================
+  // 화면 3: 거래처 상세
+  // ============================================
+  function renderCustomer() {
+    const c = state.currentCustomer;
+    let backLabel = '‹ 검색';
+    if (state.customerFrom === 'dashboard') backLabel = '‹ 대시보드';
+    else if (state.customerFrom === 'dashList') backLabel = '‹ 리스트';
+    if (c && c.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">${backLabel}</button>
+          <div class="title">거래처 정보</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (c && c.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">${backLabel}</button>
+          <div class="title">거래처 정보</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(c.error)}</div>
+      `;
+    }
+
+    const cust = c.customer;
+    const devices = c.devices || [];
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">${backLabel}</button>
+        <div class="title">거래처 정보</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="content">
+        <div class="info-card">
+          <p class="name">${escapeHtml(cust['상호'] || '')}</p>
+          <p class="cust-id">고객번호: ${escapeHtml(cust['고객번호'] || '')}</p>
+          <div class="info-grid">
+            ${infoRow('주소', cust['주소'])}
+            ${infoRow('전화1', cust['전화1'], 'tel')}
+            ${infoRow('전화2', cust['전화2'], 'tel')}
+            ${infoRow('담당자', cust['담당자성명'])}
+            ${infoRow('담당자휴대폰', cust['담당자휴대폰'], 'tel')}
+            ${infoRow('정기점검일', cust['정기점검일'])}
+            ${infoRow('점검주기', cust['점검주기'])}
+            ${cust['비고'] ? infoRow('비고', cust['비고']) : ''}
+          </div>
+          <p class="section-title">보유 기기 ${devices.length}대</p>
+          ${devices.length === 0
+            ? '<div class="empty-state" style="padding:20px 0;">등록된 기기가 없습니다</div>'
+            : devices.map(d => renderDeviceCard(d)).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  function infoRow(label, value, type) {
+    if (!value || String(value).trim() === '') return '';
+    let val = escapeHtml(value);
+    if (type === 'tel') {
+      const tel = String(value).replace(/[^0-9+]/g, '');
+      if (tel.length >= 7) {
+        val = `<a href="tel:${tel}">${escapeHtml(value)}</a>`;
+      }
+    }
+    return `
+      <div class="info-row">
+        <span class="label">${escapeHtml(label)}</span>
+        <span class="value">${val}</span>
+      </div>
+    `;
+  }
+
+  function renderDeviceCard(d) {
+    const type = d['기기종류'] || '';
+    let badgeClass = 'none';
+    let badgeText = type || '미분류';
+    if (type.includes('복사기')) badgeClass = '';
+    else if (type.includes('세단기')) badgeClass = 'shredder';
+    else if (type.includes('잉크젯')) badgeClass = 'inkjet';
+    else if (type.includes('레이저')) badgeClass = 'laser';
+
+    const sn = d['시리얼번호'] || '';
+    const startDate = d['임대시작일'] || '';
+    const endDate = d['임대종료일'] || '';
+    const status = getLeaseStatus(endDate);
+    const isExpired = status && status.type === 'expired';
+
+    let leaseHtml = '';
+    if (startDate || endDate) {
+      const dateRange = `${startDate || '?'} ~ ${endDate || '?'}`;
+      let statusBadge = '';
+      if (status) {
+        statusBadge = `<span class="lease-badge ${status.type}">${escapeHtml(status.label)}</span>`;
+      }
+      leaseHtml = `<div class="lease">임대: ${escapeHtml(dateRange)} ${statusBadge}</div>`;
+    }
+
+    return `
+      <div class="device-card ${isExpired ? 'expired' : ''}" data-sn="${escapeHtml(sn)}">
+        <div class="top">
+          <div style="flex:1; min-width:0;">
+            <p class="model">${escapeHtml(d['기종'] || '기종 미상')}</p>
+            <p class="sn">S/N: ${escapeHtml(sn)}</p>
+          </div>
+          <span class="badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+        </div>
+        ${leaseHtml}
+      </div>
+    `;
+  }
+
+  function bindCustomer() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      const from = state.customerFrom || 'search';
+      if (from === 'dashboard') go('dashboard');
+      else if (from === 'dashList') go('dashList');
+      else go('search');
+    });
+    document.querySelectorAll('.device-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const sn = el.getAttribute('data-sn');
+        if (!sn || sn === '[시리얼번호없음]') {
+          showToast('시리얼번호가 없는 기기입니다');
+          return;
+        }
+        loadDevice(sn);
+      });
+    });
+  }
+
+  async function loadDevice(sn) {
+    go('device', { currentDevice: { loading: true, sn: sn } });
+    try {
+      const data = await callApi('device', { sn: sn });
+      if (data.error) throw new Error(data.error);
+      state.currentDevice = data;
+      render();
+    } catch (e) {
+      state.currentDevice = { error: e.message };
+      render();
+    }
+  }
+
+  // ============================================
+  // 화면 4: 기기 상세
+  // ============================================
+  function renderDevice() {
+    const c = state.currentDevice;
+    if (c && c.loading) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 거래처</button>
+          <div class="title">기기 정보</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="loading">불러오는 중</div>
+      `;
+    }
+    if (c && c.error) {
+      return `
+        <div class="header">
+          <button class="back" id="back-btn">‹ 거래처</button>
+          <div class="title">기기 정보</div>
+          <div style="width:48px;"></div>
+        </div>
+        <div class="error-msg">${escapeHtml(c.error)}</div>
+      `;
+    }
+
+    const d = c.device;
+    const history = c.history || [];
+    const status = getLeaseStatus(d['임대종료일']);
+    let statusBadgeHtml = '';
+    if (status) {
+      statusBadgeHtml = `<span class="lease-badge ${status.type}" style="margin-left:8px; vertical-align:middle;">${escapeHtml(status.label)}</span>`;
+    }
+    const feeFormatted = d['임대료'] ? formatNumber(d['임대료']) + '원' : '';
+
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 거래처</button>
+        <div class="title">기기 정보</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="content">
+        <div class="device-header">
+          <p class="model">${escapeHtml(d['기종'] || '')}</p>
+          <p class="sn">S/N: ${escapeHtml(d['시리얼번호'] || '')}</p>
+        </div>
+        <div class="info-grid">
+          ${infoRow('기기종류', d['기기종류'])}
+          ${infoRow('임대시작일', d['임대시작일'])}
+          ${d['임대종료일'] ? `
+            <div class="info-row">
+              <span class="label">임대종료일</span>
+              <span class="value">${escapeHtml(d['임대종료일'])}${statusBadgeHtml}</span>
+            </div>
+          ` : ''}
+          ${feeFormatted ? infoRow('임대료', feeFormatted) : ''}
+          ${d['중요사항'] ? infoRow('중요사항', d['중요사항']) : ''}
+        </div>
+        <p class="section-title">점검 이력 ${history.length}건</p>
+        ${history.length === 0
+          ? '<div class="history-empty">아직 점검 이력이 없습니다</div>'
+          : history.map((h, i) => renderHistoryItem(h, i === 0)).join('')
+        }
+      </div>
+    `;
+  }
+
+  function renderHistoryItem(h, isRecent) {
+    const date = h['점검일'] || '';
+    const worker = h['점검자'] || h['작업자'] || '';
+    const type = h['점검유형'] || '';
+    const items = h['점검항목'] || '';
+    const parts = h['사용부품'] || '';
+    const memo = h['기타사항'] || h['메모'] || '';
+
+    return `
+      <div class="history-item ${isRecent ? 'recent' : ''}">
+        <div class="top">
+          <span class="date">${escapeHtml(date)}${type ? ' · ' + escapeHtml(type) : ''}</span>
+          <span class="worker">${escapeHtml(worker)}</span>
+        </div>
+        ${items ? `<p class="content"><strong style="font-weight:500;">점검항목</strong> · ${escapeHtml(items)}</p>` : ''}
+        ${parts ? `<p class="parts"><strong style="font-weight:500;">사용부품</strong> · ${escapeHtml(parts)}</p>` : ''}
+        ${memo ? `<p class="parts"><strong style="font-weight:500;">기타</strong> · ${escapeHtml(memo)}</p>` : ''}
+      </div>
+    `;
+  }
+
+  function bindDevice() {
+    document.getElementById('back-btn').addEventListener('click', () => {
+      // 거래처 화면으로 돌아가기 (이미 currentCustomer가 있음)
+      state.screen = 'customer';
+      render();
+    });
+  }
+
+  // ============================================
+  // 유틸
+  // ============================================
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // 임대 만료 상태 계산
+  function getLeaseStatus(endDateStr) {
+    if (!endDateStr) return null;
+    // "2024-10-17" 또는 "2024.10.17" 형태 모두 처리
+    const cleaned = String(endDateStr).trim().replace(/\./g, '-').replace(/\s/g, '');
+    const m = cleaned.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (!m) return null;
+    const end = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    if (isNaN(end.getTime())) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((end - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      return { type: 'expired', days: -diffDays, label: '만료됨' };
+    } else if (diffDays === 0) {
+      return { type: 'soon', days: 0, label: '오늘 만료' };
+    } else if (diffDays <= 30) {
+      return { type: 'soon', days: diffDays, label: 'D-' + diffDays };
+    } else {
+      return { type: 'normal', days: diffDays, label: diffDays + '일 남음' };
+    }
+  }
+
+  // 숫자 콤마
+  function formatNumber(v) {
+    if (v === null || v === undefined || v === '') return '';
+    const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+    if (isNaN(n)) return String(v);
+    return n.toLocaleString('ko-KR');
+  }
+
+  function showToast(msg) {
+    let toast = document.querySelector('.toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // ============================================
+  // 시작
+  // ============================================
+  render();
+
+  // PWA Service Worker 등록
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
