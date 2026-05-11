@@ -1691,15 +1691,21 @@
         </div>
 
         <div class="form-field">
-          <label>사용 부품 (다중 선택)</label>
-          <div class="check-list" id="f-parts">
+          <label>사용 부품 (수량 선택)</label>
+          <div id="f-parts">
             ${parts.length === 0
               ? '<div class="check-empty">사용부품 탭에 등록된 부품이 없습니다</div>'
               : parts.map((p, i) => `
-                <label data-idx="${i}">
-                  <input type="checkbox" value="${escapeHtml(p)}">
-                  <span>${escapeHtml(p)}</span>
-                </label>
+                <div class="stock-input-row parts-row" data-name="${escapeHtml(p)}">
+                  <div class="si-left">
+                    <p class="si-name">${escapeHtml(p)}</p>
+                  </div>
+                  <div class="si-control">
+                    <button type="button" class="si-btn si-minus" disabled>−</button>
+                    <span class="si-val">0</span>
+                    <button type="button" class="si-btn si-plus">+</button>
+                  </div>
+                </div>
               `).join('')
             }
           </div>
@@ -1780,7 +1786,7 @@
     });
 
     // 보유부품 +/- 버튼 (실수량 입력 - 제한 없이 자유롭게, 0 이상)
-    document.querySelectorAll('.stock-input-row').forEach(row => {
+    document.querySelectorAll('.stock-input-row:not(.parts-row)').forEach(row => {
       const valEl = row.querySelector('.si-val');
       const minusBtn = row.querySelector('.si-minus');
       const plusBtn = row.querySelector('.si-plus');
@@ -1791,6 +1797,29 @@
         minusBtn.disabled = val <= 0;
       }
       updateVal();
+
+      minusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (val > 0) { val--; updateVal(); }
+      });
+      plusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        val++; updateVal();
+      });
+    });
+
+    // 사용부품 +/- 버튼 (0부터 시작, 제한 없음)
+    document.querySelectorAll('.parts-row').forEach(row => {
+      const valEl = row.querySelector('.si-val');
+      const minusBtn = row.querySelector('.si-minus');
+      const plusBtn = row.querySelector('.si-plus');
+      let val = 0;
+
+      function updateVal() {
+        valEl.textContent = val;
+        valEl.className = 'si-val' + (val > 0 ? ' nonzero' : '');
+        minusBtn.disabled = val <= 0;
+      }
 
       minusBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1815,9 +1844,17 @@
       const checkedItems = Array.from(
         document.querySelectorAll('#f-items input[type="checkbox"]:checked')
       ).map(cb => cb.value);
-      const checkedParts = Array.from(
-        document.querySelectorAll('#f-parts input[type="checkbox"]:checked')
-      ).map(cb => cb.value);
+
+      // 사용부품 수량 수집 (0보다 큰 것만)
+      const partsArr = [];
+      document.querySelectorAll('.parts-row').forEach(row => {
+        const name = row.getAttribute('data-name');
+        const val = parseInt(row.querySelector('.si-val').textContent) || 0;
+        if (val > 0) {
+          partsArr.push(name + ':' + val);
+        }
+      });
+      const checkedParts = partsArr;
 
       // 보유부품 실수량 수집 (전체 항목)
       const stockArr = [];
