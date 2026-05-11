@@ -1706,19 +1706,19 @@
         </div>
 
         <div class="form-field">
-          <label>보유부품 사용${hasStock ? '' : ' (등록된 보유부품 없음)'}</label>
+          <label>보유부품 현황${hasStock ? ' (점검 후 실수량으로 수정)' : ''}</label>
           <div id="f-stock">
             ${hasStock
               ? Object.entries(deviceStock).map(([name, qty]) => `
-                <div class="stock-input-row" data-name="${escapeHtml(name)}" data-max="${qty}">
+                <div class="stock-input-row" data-name="${escapeHtml(name)}">
                   <div class="si-left">
                     <p class="si-name">${escapeHtml(name)}</p>
-                    <p class="si-stock">보유: ${qty}개</p>
+                    <p class="si-stock">기존: ${qty}개</p>
                   </div>
                   <div class="si-control">
-                    <button type="button" class="si-btn si-minus" disabled>−</button>
-                    <span class="si-val">0</span>
-                    <button type="button" class="si-btn si-plus" ${qty === 0 ? 'disabled' : ''}>+</button>
+                    <button type="button" class="si-btn si-minus">−</button>
+                    <span class="si-val">${qty}</span>
+                    <button type="button" class="si-btn si-plus">+</button>
                   </div>
                 </div>
               `).join('')
@@ -1779,20 +1779,18 @@
       });
     });
 
-    // 보유부품 +/- 버튼
+    // 보유부품 +/- 버튼 (실수량 입력 - 제한 없이 자유롭게, 0 이상)
     document.querySelectorAll('.stock-input-row').forEach(row => {
-      const max = parseInt(row.getAttribute('data-max')) || 0;
       const valEl = row.querySelector('.si-val');
       const minusBtn = row.querySelector('.si-minus');
       const plusBtn = row.querySelector('.si-plus');
-      let val = 0;
+      let val = parseInt(valEl.textContent) || 0;
 
       function updateVal() {
         valEl.textContent = val;
-        valEl.className = 'si-val' + (val > 0 ? ' nonzero' : '');
         minusBtn.disabled = val <= 0;
-        plusBtn.disabled = val >= max;
       }
+      updateVal();
 
       minusBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1800,7 +1798,7 @@
       });
       plusBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (val < max) { val++; updateVal(); }
+        val++; updateVal();
       });
     });
 
@@ -1821,16 +1819,14 @@
         document.querySelectorAll('#f-parts input[type="checkbox"]:checked')
       ).map(cb => cb.value);
 
-      // 보유부품 사용 내역 수집
-      const usedStockArr = [];
+      // 보유부품 실수량 수집 (전체 항목)
+      const stockArr = [];
       document.querySelectorAll('.stock-input-row').forEach(row => {
         const name = row.getAttribute('data-name');
         const val = parseInt(row.querySelector('.si-val').textContent) || 0;
-        if (val > 0) {
-          usedStockArr.push(name + ':' + val);
-        }
+        stockArr.push(name + ':' + val);
       });
-      const usedStock = usedStockArr.join(', ');
+      const stockStr = stockArr.join(', ');
 
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
@@ -1848,7 +1844,7 @@
           items: checkedItems.join(', '),
           parts: checkedParts.join(', '),
           memo: memo,
-          usedStock: usedStock
+          stock: stockStr
         });
         if (result.success) {
           state.inspectOptions.saved = true;
@@ -2716,7 +2712,7 @@
     const type = h['점검유형'] || '';
     const items = h['점검항목'] || '';
     const parts = h['사용부품'] || '';
-    const usedStock = h['보유부품사용'] || '';
+    const usedStock = h['보유부품'] || '';
     const memo = h['기타사항'] || h['메모'] || '';
 
     return `
@@ -2727,7 +2723,7 @@
         </div>
         ${items ? `<p class="content"><strong style="font-weight:500;">점검항목</strong> · ${escapeHtml(items)}</p>` : ''}
         ${parts ? `<p class="parts"><strong style="font-weight:500;">사용부품</strong> · ${escapeHtml(parts)}</p>` : ''}
-        ${usedStock ? `<p class="parts"><strong style="font-weight:500;">보유부품사용</strong> · ${escapeHtml(usedStock)}</p>` : ''}
+        ${usedStock ? `<p class="parts"><strong style="font-weight:500;">보유부품</strong> · ${escapeHtml(usedStock)}</p>` : ''}
         ${memo ? `<p class="parts"><strong style="font-weight:500;">기타</strong> · ${escapeHtml(memo)}</p>` : ''}
       </div>
     `;
