@@ -881,6 +881,46 @@
     font-weight: 600;
   }
   .stock-input-row .si-val.nonzero { color: #007aff; }
+
+  /* 에러코드 */
+  .error-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .error-card:active { background: #f5f5f7; }
+  .error-card .ec-top {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .error-card .ec-code {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #c53030;
+  }
+  .error-card .ec-name {
+    font-size: 13px;
+    color: #6e6e73;
+  }
+  .error-card .ec-desc {
+    font-size: 13px;
+    color: #1d1d1f;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.5;
+  }
+  .error-card.expanded .ec-desc {
+    display: block;
+    -webkit-line-clamp: unset;
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
 </style>
 </head>
 <body>
@@ -981,6 +1021,9 @@
     } else if (state.screen === 'asDetail') {
       app.innerHTML = renderAsDetail();
       bindAsDetail();
+    } else if (state.screen === 'errorSearch') {
+      app.innerHTML = renderErrorSearch();
+      bindErrorSearch();
     }
   }
 
@@ -1105,6 +1148,14 @@
           </div>
           <div class="label">AS 접수</div>
         </div>
+        <div class="menu-card" data-go="errorSearch" style="grid-column: 1 / -1;">
+          <div class="icon" style="background:#fef3c7; color:#92400e;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="label">에러코드 검색</div>
+        </div>
       </div>
     `;
   }
@@ -1143,6 +1194,10 @@
           go('inspectSearch');
         } else if (screen === 'asList') {
           loadAsList('대기중');
+        } else if (screen === 'errorSearch') {
+          state.errorQuery = '';
+          state.errorResults = null;
+          go('errorSearch');
         } else {
           go(screen);
         }
@@ -2480,6 +2535,87 @@
         }
       });
     });
+  }
+
+  // ============================================
+  // 화면: 에러코드 검색
+  // ============================================
+  function renderErrorSearch() {
+    return `
+      <div class="header">
+        <button class="back" id="back-btn">‹ 메뉴</button>
+        <div class="title">에러코드 검색</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="error-input" placeholder="에러코드 입력 (예: 11-1110, Motor)" value="${escapeHtml(state.errorQuery || '')}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div id="error-results">
+        ${state.errorResults === null
+          ? '<div class="empty-state">에러코드를 입력하세요<br><br><span style="font-size:12px; color:#a0a0a5;">코드 번호 또는 에러명으로 검색</span></div>'
+          : renderErrorResults(state.errorResults)
+        }
+      </div>
+    `;
+  }
+
+  function renderErrorResults(results) {
+    if (results.length === 0) {
+      return '<div class="empty-state">일치하는 에러코드가 없습니다</div>';
+    }
+    return `
+      <p class="result-count">검색 결과 ${results.length}건${results.length >= 30 ? ' (최대 30건)' : ''}</p>
+      <div style="padding: 0 16px 16px;">
+        ${results.map(r => `
+          <div class="error-card">
+            <div class="ec-top">
+              <span class="ec-code">${escapeHtml(r['코드'])}</span>
+              <span class="ec-name">${escapeHtml(r['코드명'])}</span>
+            </div>
+            <div class="ec-desc">${escapeHtml(r['설명']).replace(/\\n/g, '\n')}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function bindErrorSearch() {
+    document.getElementById('back-btn').addEventListener('click', () => go('menu'));
+
+    const input = document.getElementById('error-input');
+    const resultDiv = document.getElementById('error-results');
+
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      state.errorQuery = q;
+      if (!q || q.length < 2) {
+        state.errorResults = null;
+        resultDiv.innerHTML = '<div class="empty-state">에러코드를 입력하세요<br><br><span style="font-size:12px; color:#a0a0a5;">2글자 이상 입력</span></div>';
+        return;
+      }
+      resultDiv.innerHTML = '<div class="loading">검색 중</div>';
+      timer = setTimeout(async () => {
+        try {
+          const data = await callApi('searchError', { q: q });
+          state.errorResults = data.results || [];
+          resultDiv.innerHTML = renderErrorResults(state.errorResults);
+          // 카드 클릭 시 펼치기/접기
+          resultDiv.querySelectorAll('.error-card').forEach(card => {
+            card.addEventListener('click', () => {
+              card.classList.toggle('expanded');
+            });
+          });
+        } catch (e) {
+          resultDiv.innerHTML = '<div class="error-msg">검색 실패: ' + escapeHtml(e.message) + '</div>';
+        }
+      }, 400);
+    });
+
+    if (!state.errorQuery) {
+      setTimeout(() => input.focus(), 100);
+    }
   }
 
   // ============================================
