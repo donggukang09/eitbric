@@ -307,6 +307,35 @@
   }
   .toast.show { opacity: 1; }
 
+  /* 로딩 오버레이 */
+  .loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.7);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .loading-overlay .lo-inner {
+    background: #fff;
+    padding: 16px 28px;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    font-size: 14px;
+    color: #6e6e73;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .loading-overlay .lo-spinner {
+    width: 18px; height: 18px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #6e6e73;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
   /* 메인 메뉴 */
   .menu-greeting {
     padding: 24px 20px 8px;
@@ -1541,13 +1570,16 @@
   }
 
   async function loadCustomerForInspect(id) {
+    showLoading('거래처 정보 불러오는 중');
     try {
       const data = await callApi('customer', { id: id });
+      hideLoading();
       if (data.error) throw new Error(data.error);
       state.inspectCustomer = data.customer;
       state.inspectDevices = data.devices || [];
       go('inspectDevicePick');
     } catch (e) {
+      hideLoading();
       showToast('불러오기 실패: ' + e.message);
     }
   }
@@ -1617,6 +1649,7 @@
   // ============================================
   async function loadInspectForm() {
     state.inspectOptions = { loading: true };
+    showLoading('점검 항목 불러오는 중');
     go('inspectForm');
     try {
       // 점검 옵션과 기기 상세(보유부품)를 동시에 로드
@@ -1630,8 +1663,10 @@
         optData.deviceStock = devData.device['보유부품'] || '';
       }
       state.inspectOptions = optData;
+      hideLoading();
       render();
     } catch (e) {
+      hideLoading();
       state.inspectOptions = { error: e.message };
       render();
     }
@@ -2151,11 +2186,13 @@
   }
 
   async function loadCustomerForAs(id) {
+    showLoading('거래처 정보 불러오는 중');
     try {
       const [custData, staffData] = await Promise.all([
         callApi('customer', { id: id }),
         callApi('staff')
       ]);
+      hideLoading();
       if (custData.error) throw new Error(custData.error);
       state.asNewCustomer = custData.customer;
       state.asNewDevices = custData.devices || [];
@@ -2163,6 +2200,7 @@
       state.asNewSelectedSn = {}; // 선택된 시리얼번호 맵
       go('asNewForm');
     } catch (e) {
+      hideLoading();
       showToast('불러오기 실패: ' + e.message);
     }
   }
@@ -2623,13 +2661,16 @@
   // ============================================
   async function loadCustomer(id) {
     state.customerFrom = state.screen; // 어디서 왔는지 기억
+    showLoading('불러오는 중');
     go('customer', { currentCustomer: { loading: true, id: id } });
     try {
       const data = await callApi('customer', { id: id });
+      hideLoading();
       if (data.error) throw new Error(data.error);
       state.currentCustomer = data;
       render();
     } catch (e) {
+      hideLoading();
       state.currentCustomer = { error: e.message };
       render();
     }
@@ -2773,13 +2814,16 @@
   }
 
   async function loadDevice(sn) {
+    showLoading('기기 정보 불러오는 중');
     go('device', { currentDevice: { loading: true, sn: sn } });
     try {
       const data = await callApi('device', { sn: sn });
+      hideLoading();
       if (data.error) throw new Error(data.error);
       state.currentDevice = data;
       render();
     } catch (e) {
+      hideLoading();
       state.currentDevice = { error: e.message };
       render();
     }
@@ -2965,6 +3009,20 @@
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function showLoading(msg) {
+    hideLoading();
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.id = 'loading-overlay';
+    overlay.innerHTML = `<div class="lo-inner"><div class="lo-spinner"></div>${escapeHtml(msg || '불러오는 중')}</div>`;
+    document.body.appendChild(overlay);
+  }
+
+  function hideLoading() {
+    const existing = document.getElementById('loading-overlay');
+    if (existing) existing.remove();
   }
 
   // ============================================
