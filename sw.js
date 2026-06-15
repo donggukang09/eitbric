@@ -1,5 +1,5 @@
 // 이이티브릭 Service Worker
-const CACHE_NAME = 'eitbric-v1';
+const CACHE_NAME = 'eitbric-v3';
 const ASSETS = [
   './',
   './index.html',

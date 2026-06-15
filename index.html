@@ -1590,9 +1590,10 @@
   function renderInspectDevicePick() {
     const cust = state.inspectCustomer;
     const devices = state.inspectDevices || [];
+    const backLabel = state.inspectFromAs ? '‹ AS 접수' : '‹ 거래처 선택';
     return `
       <div class="header">
-        <button class="back" id="back-btn">‹ 거래처 선택</button>
+        <button class="back" id="back-btn">${backLabel}</button>
         <div class="title">기기 선택</div>
         <div style="width:48px;"></div>
       </div>
@@ -1628,7 +1629,13 @@
 
   function bindInspectDevicePick() {
     document.getElementById('back-btn').addEventListener('click', () => {
-      go('inspectSearch');
+      if (state.inspectFromAs) {
+        state.inspectFlow = false;
+        loadAsDetail(state.inspectFromAs);
+        state.inspectFromAs = null;
+      } else {
+        go('inspectSearch');
+      }
     });
     document.querySelectorAll('.device-card').forEach(el => {
       el.addEventListener('click', () => {
@@ -1674,10 +1681,11 @@
 
   function renderInspectForm() {
     const opts = state.inspectOptions;
+    const formBackLabel = state.inspectFromAs ? '‹ AS 접수' : '‹ 기기 선택';
     if (!opts || opts.loading) {
       return `
         <div class="header">
-          <button class="back" id="back-btn">‹ 기기 선택</button>
+          <button class="back" id="back-btn">${formBackLabel}</button>
           <div class="title">점검 등록</div>
           <div style="width:48px;"></div>
         </div>
@@ -1687,7 +1695,7 @@
     if (opts.error) {
       return `
         <div class="header">
-          <button class="back" id="back-btn">‹ 기기 선택</button>
+          <button class="back" id="back-btn">${formBackLabel}</button>
           <div class="title">점검 등록</div>
           <div style="width:48px;"></div>
         </div>
@@ -1705,7 +1713,7 @@
           <div class="check">✓</div>
           <h2>점검이 등록되었습니다</h2>
           <p>점검ID: ${escapeHtml(opts.savedId || '')}</p>
-          <button class="btn-primary" id="done-btn" style="max-width: 200px;">메뉴로 돌아가기</button>
+          <button class="btn-primary" id="done-btn" style="max-width: 200px;">${state.inspectFromAs ? 'AS 접수로 돌아가기' : '메뉴로 돌아가기'}</button>
         </div>
       `;
     }
@@ -1737,7 +1745,7 @@
 
     return `
       <div class="header">
-        <button class="back" id="back-btn">‹ 기기 선택</button>
+        <button class="back" id="back-btn">${formBackLabel}</button>
         <div class="title">점검 등록</div>
         <div style="width:48px;"></div>
       </div>
@@ -1850,19 +1858,33 @@
 
     if (opts.saved) {
       document.getElementById('done-btn').addEventListener('click', () => {
+        const fromAs = state.inspectFromAs;
         // 상태 정리
         state.inspectFlow = false;
         state.inspectCustomer = null;
         state.inspectDevices = null;
         state.inspectDevice = null;
         state.inspectOptions = null;
-        go('menu');
+        if (fromAs) {
+          state.inspectFromAs = null;
+          loadAsDetail(fromAs); // AS 상세로 돌아가기
+        } else {
+          go('menu');
+        }
       });
       return;
     }
 
     document.getElementById('back-btn').addEventListener('click', () => {
-      go('inspectDevicePick');
+      if (state.inspectFromAs && state.inspectDevices && state.inspectDevices.length <= 1) {
+        // AS에서 왔고 기기 1대라 기기선택을 건너뛴 경우 → AS 상세로
+        const fromAs = state.inspectFromAs;
+        state.inspectFlow = false;
+        state.inspectFromAs = null;
+        loadAsDetail(fromAs);
+      } else {
+        go('inspectDevicePick');
+      }
     });
 
     // 체크박스 visual feedback
@@ -2527,6 +2549,10 @@
         <p class="section-title">요청사항</p>
         <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:14px; margin-bottom:20px; font-size:14px; line-height:1.6; white-space:pre-wrap;">${escapeHtml(it['요청사항'] || '(없음)')}</div>
 
+        ${status !== '완료' ? `
+        <button class="btn-primary" id="goto-inspect-btn" style="margin-bottom:24px; background:#0f6e56;">점검 등록하기</button>
+        ` : ''}
+
         <p class="section-title">상태 변경</p>
         <div class="status-btns">
           <button class="status-btn ${status === '대기중' ? 'active' : ''}" data-status="대기중">대기중</button>
@@ -2544,6 +2570,58 @@
 
     const data = state.asDetailData;
     if (!data || data.loading || data.error) return;
+
+    // 점검 등록하기 버튼
+    const inspectBtn = document.getElementById('goto-inspect-btn');
+    if (inspectBtn) {
+      inspectBtn.addEventListener('click', async () => {
+        const it = data.item;
+        const customerId = it['고객번호'] || '';
+        if (!customerId) {
+          showToast('고객번호가 없습니다');
+          return;
+        }
+
+        showLoading('거래처 정보 불러오는 중');
+        try {
+          const custData = await callApi('customer', { id: customerId });
+          hideLoading();
+          if (custData.error) throw new Error(custData.error);
+
+          // AS 접수의 시리얼번호 목록
+          const asSnList = (it['시리얼번호목록'] || '').split(',').map(s => s.trim()).filter(Boolean);
+
+          // 거래처 기기 중 AS 대상 기기만 필터
+          const allDevices = custData.devices || [];
+          const filteredDevices = allDevices.filter(d => {
+            const sn = String(d['시리얼번호'] || '').trim();
+            return asSnList.includes(sn);
+          });
+
+          // 점검 등록 흐름 진입
+          state.inspectFlow = true;
+          state.inspectFromAs = it['접수ID']; // AS에서 왔음을 기억
+          state.inspectCustomer = custData.customer;
+          state.inspectDevices = filteredDevices.length > 0 ? filteredDevices : allDevices;
+
+          if (filteredDevices.length === 1) {
+            // 기기 1대 → 바로 폼으로
+            const d = filteredDevices[0];
+            state.inspectDevice = {
+              sn: d['시리얼번호'] || '',
+              model: d['기종'] || ''
+            };
+            loadInspectForm();
+          } else {
+            // 여러 대 → 기기 선택 화면으로
+            go('inspectDevicePick');
+          }
+        } catch (e) {
+          hideLoading();
+          showToast('불러오기 실패: ' + e.message);
+        }
+      });
+    }
 
     document.querySelectorAll('.status-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
