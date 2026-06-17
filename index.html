@@ -1111,7 +1111,7 @@
       try {
         const result = await callApi('login', { name: sel.value, pin: pin.value });
         if (result.success) {
-          state.user = { name: result.name };
+          state.user = { name: result.name, role: result.role || '' };
           try { sessionStorage.setItem('eitbric_user', JSON.stringify(state.user)); } catch (e) {}
           go('menu');
         } else {
@@ -1152,6 +1152,7 @@
           </div>
           <div class="label">거래처 검색</div>
         </div>
+        ${state.user.role === 'ADMIN' ? `
         <div class="menu-card dash" data-go="dashboard">
           <div class="icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1160,6 +1161,7 @@
           </div>
           <div class="label">거래처 대시보드</div>
         </div>
+        ` : ''}
         <div class="menu-card inspect" data-go="inspectStart">
           <div class="icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
