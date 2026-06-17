@@ -1152,16 +1152,6 @@
           </div>
           <div class="label">거래처 검색</div>
         </div>
-        ${state.user.role === 'ADMIN' ? `
-        <div class="menu-card dash" data-go="dashboard">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
-            </svg>
-          </div>
-          <div class="label">거래처 대시보드</div>
-        </div>
-        ` : ''}
         <div class="menu-card inspect" data-go="inspectStart">
           <div class="icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1179,7 +1169,7 @@
           </div>
           <div class="label">AS 접수</div>
         </div>
-        <div class="menu-card" data-go="errorSearch" style="grid-column: 1 / -1;">
+        <div class="menu-card" data-go="errorSearch">
           <div class="icon" style="background:#fef3c7; color:#92400e;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -1187,6 +1177,17 @@
           </div>
           <div class="label">에러코드 검색</div>
         </div>
+        ${state.user.role === 'ADMIN' ? `
+        <div class="menu-card admin-dash" data-go="dashboard" style="grid-column:1/-1; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); border-color:#1a1a2e;">
+          <div class="icon" style="background:rgba(255,255,255,0.15); color:#fff;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+            </svg>
+          </div>
+          <div class="label" style="color:#fff;">거래처 대시보드</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px;">ADMIN 전용</div>
+        </div>
+        ` : ''}
       </div>
     `;
   }
@@ -1274,11 +1275,23 @@
         <div style="width:48px;"></div>
       </div>
       <div class="dash-section">
+        <p class="dash-section-title">수익 현황</p>
+        <div class="stat-grid">
+          <div class="stat-card full no-click" style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); padding:20px;">
+            <p class="label" style="color:rgba(255,255,255,0.6);">월 임대료 총합 (정상 임대분)</p>
+            <p class="value" style="color:#fff; font-size:28px;">${formatNumber(d['월임대료총합'])}<span class="unit" style="color:rgba(255,255,255,0.5);">원</span></p>
+          </div>
+        </div>
+
         <p class="dash-section-title">현황 요약</p>
         <div class="stat-grid">
-          <div class="stat-card full no-click">
+          <div class="stat-card no-click">
             <p class="label">총 거래처</p>
             <p class="value">${formatNumber(d['총거래처수'])}<span class="unit">곳</span></p>
+          </div>
+          <div class="stat-card no-click">
+            <p class="label">임대중 기기</p>
+            <p class="value">${formatNumber(d['임대중기기수'])}<span class="unit">대</span></p>
           </div>
         </div>
 
