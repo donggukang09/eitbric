@@ -10,6 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>이이티브릭 서비스</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -514,6 +515,24 @@
   .dash-list-item .status-tag.expired { background: #e24b4a; color: #fff; }
   .dash-list-item .status-tag.soon { background: #faeed8; color: #854f0b; }
   .dash-list-item .status-tag.normal { background: #f0f0f0; color: #6e6e73; }
+
+  .chart-card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: #1d1d1f;
+  }
+  .chart-card canvas {
+    width: 100% !important;
+    max-height: 250px;
+  }
   .dash-list-item .end-date {
     font-size: 11px; color: #a0a0a5;
     margin: 4px 0 0;
@@ -1313,6 +1332,28 @@
             <p class="value">${formatNumber(d['만료된기기수'])}<span class="unit">대</span></p>
           </div>
         </div>
+
+        <p class="dash-section-title" style="margin-top:8px;">수익 분석</p>
+        <div class="chart-card">
+          <p class="chart-title">월별 예상 수익 (향후 12개월)</p>
+          <canvas id="chart-revenue"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <p class="chart-title">월별 만료 예정 기기</p>
+          <canvas id="chart-expiring"></canvas>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="chart-card">
+            <p class="chart-title">기기 종류 분포</p>
+            <canvas id="chart-types"></canvas>
+          </div>
+          <div class="chart-card">
+            <p class="chart-title">거래처 수익 TOP</p>
+            <canvas id="chart-top"></canvas>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1362,6 +1403,10 @@
     document.getElementById('back-btn').addEventListener('click', () => {
       go('menu');
     });
+
+    const data = state.dashboard;
+    if (!data || data.loading || data.error) return;
+
     document.querySelectorAll('.stat-card[data-list]').forEach(el => {
       el.addEventListener('click', () => {
         const listType = el.getAttribute('data-list');
@@ -1369,6 +1414,194 @@
         go('dashList');
       });
     });
+
+    // ---- 차트 렌더링 ----
+    if (typeof Chart === 'undefined') return; // Chart.js 미로드 시 건너뛰기
+
+    const chartFont = { family: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif' };
+    Chart.defaults.font.family = chartFont.family;
+    Chart.defaults.font.size = 11;
+
+    // 1. 월별 예상 수익
+    const revData = data['월별예상수익'] || [];
+    if (revData.length > 0) {
+      const revCtx = document.getElementById('chart-revenue');
+      if (revCtx) {
+        new Chart(revCtx, {
+          type: 'bar',
+          data: {
+            labels: revData.map(r => r.month.slice(2)),
+            datasets: [{
+              label: '예상 수익',
+              data: revData.map(r => r.amount),
+              backgroundColor: revData.map((r, i) => i === 0 ? '#3a86ff' : 'rgba(58,134,255,0.5)'),
+              borderRadius: 6,
+              barPercentage: 0.7
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1.8,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    return Number(ctx.raw).toLocaleString('ko-KR') + '원 (' + revData[ctx.dataIndex].count + '대)';
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                ticks: {
+                  callback: function(v) { return (v / 10000).toLocaleString() + '만'; }
+                },
+                grid: { color: '#f0f0f0' }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+    }
+
+    // 2. 월별 만료 기기
+    const expByMonth = data['월별만료기기'] || {};
+    const expLabels = [];
+    const expValues = [];
+    if (revData.length > 0) {
+      revData.forEach(r => {
+        expLabels.push(r.month.slice(2));
+        expValues.push(expByMonth[r.month] || 0);
+      });
+    }
+    if (expLabels.length > 0) {
+      const expCtx = document.getElementById('chart-expiring');
+      if (expCtx) {
+        new Chart(expCtx, {
+          type: 'bar',
+          data: {
+            labels: expLabels,
+            datasets: [{
+              label: '만료 기기',
+              data: expValues,
+              backgroundColor: expValues.map(v => v > 3 ? '#e24b4a' : (v > 0 ? '#f59e0b' : '#e0e0e0')),
+              borderRadius: 6,
+              barPercentage: 0.7
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1.8,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) { return ctx.raw + '대 만료'; }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                grid: { color: '#f0f0f0' }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+    }
+
+    // 3. 기기 종류 분포
+    const types = data['기기종류분포'] || {};
+    const typeLabels = Object.keys(types);
+    const typeValues = Object.values(types);
+    if (typeLabels.length > 0) {
+      const typeCtx = document.getElementById('chart-types');
+      if (typeCtx) {
+        new Chart(typeCtx, {
+          type: 'doughnut',
+          data: {
+            labels: typeLabels,
+            datasets: [{
+              data: typeValues,
+              backgroundColor: ['#3a86ff', '#8338ec', '#ff006e', '#fb5607', '#ffbe0b'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 10, padding: 8, font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // 4. 거래처 수익 TOP
+    const topCust = data['거래처수익TOP'] || [];
+    if (topCust.length > 0) {
+      const topCtx = document.getElementById('chart-top');
+      if (topCtx) {
+        // 이름 줄이기 (긴 이름 자르기)
+        const shortNames = topCust.map(c => {
+          const n = c.name.replace(/^\d+\s*/, ''); // 앞 번호 제거
+          return n.length > 6 ? n.slice(0, 6) + '..' : n;
+        });
+        new Chart(topCtx, {
+          type: 'bar',
+          data: {
+            labels: shortNames,
+            datasets: [{
+              data: topCust.map(c => c.fee),
+              backgroundColor: '#3a86ff',
+              borderRadius: 4,
+              barPercentage: 0.8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1,
+            indexAxis: 'y',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: function(ctx) { return topCust[ctx[0].dataIndex].name; },
+                  label: function(ctx) { return Number(ctx.raw).toLocaleString('ko-KR') + '원/월'; }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  callback: function(v) { return (v / 10000) + '만'; },
+                  font: { size: 9 }
+                },
+                grid: { color: '#f0f0f0' }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { font: { size: 9 } }
+              }
+            }
+          }
+        });
+      }
+    }
   }
 
   // ============================================
