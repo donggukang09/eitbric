@@ -851,6 +851,91 @@
     margin-bottom: 10px;
   }
 
+  /* 이미지 업로드 */
+  .upload-zone {
+    border: 2px dashed #d0d0d0;
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    color: #a0a0a5;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .upload-zone:active, .upload-zone.dragover {
+    border-color: #007aff;
+    background: #f0f5ff;
+    color: #007aff;
+  }
+  .upload-zone .uz-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .upload-zone .uz-text {
+    margin: 0;
+  }
+  .upload-zone .uz-sub {
+    margin: 4px 0 0;
+    font-size: 11px;
+  }
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .preview-item {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 1;
+  }
+  .preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .preview-item .pi-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 24px; height: 24px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .as-detail-images {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .as-detail-images img {
+    width: 100%;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .image-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .image-modal img {
+    max-width: 95%;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+
   /* 보유부품 */
   .stock-section {
     background: #f5f5f7;
@@ -2561,6 +2646,17 @@
         </div>
 
         <div class="form-field">
+          <label>사진 첨부 (최대 5장)</label>
+          <div class="upload-zone" id="upload-zone">
+            <div class="uz-icon">📷</div>
+            <p class="uz-text">사진을 드래그하거나 터치해서 추가</p>
+            <p class="uz-sub">JPG, PNG · 자동 압축됨</p>
+          </div>
+          <input type="file" id="file-input" accept="image/*" multiple style="display:none;">
+          <div class="preview-grid" id="preview-grid"></div>
+        </div>
+
+        <div class="form-field">
           <label>방문 요청일</label>
           <input type="date" id="f-visit-date">
         </div>
@@ -2590,6 +2686,7 @@
         state.asNewCustomer = null;
         state.asNewDevices = null;
         state.asNewSelectedSn = {};
+        state.asNewImages = [];
         loadAsList(state.asListStatus || '대기중');
       });
       return;
@@ -2599,7 +2696,67 @@
       go('asNewSearch');
     });
 
-    // 기기 선택
+    // ---- 이미지 업로드 ----
+    if (!state.asNewImages) state.asNewImages = [];
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+    const previewGrid = document.getElementById('preview-grid');
+
+    function renderPreviews() {
+      if (!previewGrid) return;
+      previewGrid.innerHTML = state.asNewImages.map((img, i) => `
+        <div class="preview-item">
+          <img src="${img.preview}" alt="사진 ${i+1}">
+          <button class="pi-remove" data-idx="${i}">×</button>
+        </div>
+      `).join('');
+      // 삭제 버튼
+      previewGrid.querySelectorAll('.pi-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          state.asNewImages.splice(idx, 1);
+          renderPreviews();
+        });
+      });
+      // 5장 이상이면 업로드 존 숨기기
+      if (uploadZone) {
+        uploadZone.style.display = state.asNewImages.length >= 5 ? 'none' : '';
+      }
+    }
+
+    async function addFiles(files) {
+      const remaining = 5 - state.asNewImages.length;
+      const toProcess = Array.from(files).slice(0, remaining);
+      for (const f of toProcess) {
+        if (!f.type.startsWith('image/')) continue;
+        try {
+          const compressed = await compressImage(f);
+          state.asNewImages.push(compressed);
+        } catch (e) {}
+      }
+      renderPreviews();
+    }
+
+    if (uploadZone) {
+      uploadZone.addEventListener('click', () => fileInput.click());
+      uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+      uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+      });
+    }
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        addFiles(fileInput.files);
+        fileInput.value = '';
+      });
+    }
+    renderPreviews();
+
+    // ---- 기기 선택 ----
     document.querySelectorAll('.device-multi-card').forEach(el => {
       const cb = el.querySelector('input[type="checkbox"]');
       if (!cb || cb.disabled) return;
@@ -2679,23 +2836,47 @@
 
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
-      btn.textContent = '저장 중...';
+      btn.textContent = state.asNewImages.length > 0 ? '사진 업로드 중...' : '저장 중...';
 
       try {
-        const result = await callApi('saveAs', {
-          receiver: state.user.name,
-          category: category,
-          customerId: state.asNewCustomer['고객번호'] || '',
-          customerName: state.asNewCustomer['상호'] || '',
-          snList: selectedSns.join(', '),
-          modelList: selectedModels.join(', '),
-          request: request,
-          visitWhen: visitWhen,
-          assignee: assignee
-        });
+        let result;
+        if (state.asNewImages.length > 0) {
+          // 사진이 있으면 POST로 전송
+          result = await callApiPost({
+            action: 'saveAsWithImages',
+            receiver: state.user.name,
+            category: category,
+            customerId: state.asNewCustomer['고객번호'] || '',
+            customerName: state.asNewCustomer['상호'] || '',
+            snList: selectedSns.join(', '),
+            modelList: selectedModels.join(', '),
+            request: request,
+            visitWhen: visitWhen,
+            assignee: assignee,
+            images: state.asNewImages.map((img, i) => ({
+              data: img.data,
+              mimeType: img.mimeType,
+              fileName: img.fileName || ('photo_' + (i+1) + '.jpg')
+            }))
+          });
+        } else {
+          // 사진 없으면 기존 GET
+          result = await callApi('saveAs', {
+            receiver: state.user.name,
+            category: category,
+            customerId: state.asNewCustomer['고객번호'] || '',
+            customerName: state.asNewCustomer['상호'] || '',
+            snList: selectedSns.join(', '),
+            modelList: selectedModels.join(', '),
+            request: request,
+            visitWhen: visitWhen,
+            assignee: assignee
+          });
+        }
         if (result.success) {
           state.asNewSaved = true;
           state.asNewSavedId = result['접수ID'];
+          state.asNewImages = [];
           render();
         } else {
           showToast('저장 실패: ' + (result.error || '알 수 없는 오류'));
@@ -2797,6 +2978,17 @@
         <p class="section-title">요청사항</p>
         <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:14px; margin-bottom:20px; font-size:14px; line-height:1.6; white-space:pre-wrap;">${escapeHtml(it['요청사항'] || '(없음)')}</div>
 
+        ${(() => {
+          const photos = (it['첨부사진'] || '').split(',').map(id => id.trim()).filter(Boolean);
+          if (photos.length === 0) return '';
+          return `
+            <p class="section-title">첨부 사진 ${photos.length}장</p>
+            <div class="as-detail-images">
+              ${photos.map(id => `<img src="https://drive.google.com/thumbnail?id=${escapeHtml(id)}&sz=w400" data-full="https://drive.google.com/thumbnail?id=${escapeHtml(id)}&sz=w1200" alt="첨부사진" loading="lazy">`).join('')}
+            </div>
+          `;
+        })()}
+
         ${status !== '완료' ? `
         <button class="btn-primary" id="goto-inspect-btn" style="margin-bottom:24px; background:#0f6e56;">점검 등록하기</button>
         ` : ''}
@@ -2821,6 +3013,17 @@
 
     // 점검 등록하기 버튼
     const inspectBtn = document.getElementById('goto-inspect-btn');
+
+    // 이미지 클릭 → 확대 보기
+    document.querySelectorAll('.as-detail-images img').forEach(img => {
+      img.addEventListener('click', () => {
+        const modal = document.createElement('div');
+        modal.className = 'image-modal';
+        modal.innerHTML = `<img src="${img.getAttribute('data-full') || img.src}">`;
+        modal.addEventListener('click', () => modal.remove());
+        document.body.appendChild(modal);
+      });
+    });
     if (inspectBtn) {
       inspectBtn.addEventListener('click', async () => {
         const it = data.item;
@@ -3349,6 +3552,53 @@
   function hideLoading() {
     const existing = document.getElementById('loading-overlay');
     if (existing) existing.remove();
+  }
+
+  // POST API 호출 (이미지 등 큰 데이터용)
+  async function callApiPost(data) {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('네트워크 오류');
+    return await res.json();
+  }
+
+  // 이미지 압축 (max 800px, JPEG 60%)
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          const maxSize = 800;
+          if (w > maxSize || h > maxSize) {
+            if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+            else { w = Math.round(w * maxSize / h); h = maxSize; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          const base64 = dataUrl.split(',')[1];
+          resolve({
+            data: base64,
+            mimeType: 'image/jpeg',
+            preview: dataUrl,
+            fileName: file.name.replace(/\.[^.]+$/, '.jpg')
+          });
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   // ============================================
