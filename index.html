@@ -2838,18 +2838,39 @@
       btn.disabled = true;
 
       try {
-        // 사진이 있으면 하나씩 업로드
+        // 사진이 있으면 하나씩 POST 업로드
         const imageIds = [];
         if (state.asNewImages && state.asNewImages.length > 0) {
           for (let i = 0; i < state.asNewImages.length; i++) {
             btn.textContent = '사진 업로드 중 (' + (i+1) + '/' + state.asNewImages.length + ')...';
             const img = state.asNewImages[i];
-            const uploadResult = await callApi('uploadImage', {
-              data: img.data,
-              fileName: img.fileName || ('photo_' + (i+1) + '.jpg')
+            const uploadKey = 'UP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+            const fileName = img.fileName || ('photo_' + (i+1) + '.jpg');
+
+            // POST로 이미지 전송 (no-cors)
+            await fetch(API_URL + '?action=uploadImage&key=' + encodeURIComponent(uploadKey) + '&fileName=' + encodeURIComponent(fileName), {
+              method: 'POST',
+              mode: 'no-cors',
+              body: img.data
             });
-            if (uploadResult.success && uploadResult.fileId) {
-              imageIds.push(uploadResult.fileId);
+
+            // 서버 처리 대기 후 결과 확인 (최대 5회 재시도)
+            let fileId = null;
+            for (let retry = 0; retry < 8; retry++) {
+              await new Promise(r => setTimeout(r, 2000));
+              try {
+                const check = await callApi('checkUpload', { key: uploadKey });
+                if (check.success && check.fileId) {
+                  fileId = check.fileId;
+                  break;
+                }
+              } catch (e) {}
+            }
+
+            if (fileId) {
+              imageIds.push(fileId);
+            } else {
+              showToast('사진 ' + (i+1) + ' 업로드 실패');
             }
           }
         }
