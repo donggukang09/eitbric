@@ -2836,43 +2836,38 @@
 
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
-      btn.textContent = state.asNewImages.length > 0 ? '사진 업로드 중...' : '저장 중...';
 
       try {
-        let result;
-        if (state.asNewImages.length > 0) {
-          // 사진이 있으면 POST로 전송
-          result = await callApiPost({
-            action: 'saveAsWithImages',
-            receiver: state.user.name,
-            category: category,
-            customerId: state.asNewCustomer['고객번호'] || '',
-            customerName: state.asNewCustomer['상호'] || '',
-            snList: selectedSns.join(', '),
-            modelList: selectedModels.join(', '),
-            request: request,
-            visitWhen: visitWhen,
-            assignee: assignee,
-            images: state.asNewImages.map((img, i) => ({
+        // 사진이 있으면 하나씩 업로드
+        const imageIds = [];
+        if (state.asNewImages && state.asNewImages.length > 0) {
+          for (let i = 0; i < state.asNewImages.length; i++) {
+            btn.textContent = '사진 업로드 중 (' + (i+1) + '/' + state.asNewImages.length + ')...';
+            const img = state.asNewImages[i];
+            const uploadResult = await callApi('uploadImage', {
               data: img.data,
-              mimeType: img.mimeType,
               fileName: img.fileName || ('photo_' + (i+1) + '.jpg')
-            }))
-          });
-        } else {
-          // 사진 없으면 기존 GET
-          result = await callApi('saveAs', {
-            receiver: state.user.name,
-            category: category,
-            customerId: state.asNewCustomer['고객번호'] || '',
-            customerName: state.asNewCustomer['상호'] || '',
-            snList: selectedSns.join(', '),
-            modelList: selectedModels.join(', '),
-            request: request,
-            visitWhen: visitWhen,
-            assignee: assignee
-          });
+            });
+            if (uploadResult.success && uploadResult.fileId) {
+              imageIds.push(uploadResult.fileId);
+            }
+          }
         }
+
+        btn.textContent = '저장 중...';
+        const result = await callApi('saveAs', {
+          receiver: state.user.name,
+          category: category,
+          customerId: state.asNewCustomer['고객번호'] || '',
+          customerName: state.asNewCustomer['상호'] || '',
+          snList: selectedSns.join(', '),
+          modelList: selectedModels.join(', '),
+          request: request,
+          visitWhen: visitWhen,
+          assignee: assignee,
+          photos: imageIds.join(',')
+        });
+
         if (result.success) {
           state.asNewSaved = true;
           state.asNewSavedId = result['접수ID'];
@@ -3554,18 +3549,7 @@
     if (existing) existing.remove();
   }
 
-  // POST API 호출 (이미지 등 큰 데이터용)
-  async function callApiPost(data) {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('네트워크 오류');
-    return await res.json();
-  }
-
-  // 이미지 압축 (max 800px, JPEG 60%)
+  // 이미지 압축 (max 600px, JPEG 50% - GET URL 크기 제한에 맞게)
   function compressImage(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -3575,7 +3559,7 @@
           const canvas = document.createElement('canvas');
           let w = img.width;
           let h = img.height;
-          const maxSize = 800;
+          const maxSize = 600;
           if (w > maxSize || h > maxSize) {
             if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
             else { w = Math.round(w * maxSize / h); h = maxSize; }
@@ -3584,7 +3568,7 @@
           canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
           const base64 = dataUrl.split(',')[1];
           resolve({
             data: base64,
