@@ -851,90 +851,6 @@
     margin-bottom: 10px;
   }
 
-  /* 이미지 업로드 */
-  .upload-zone {
-    border: 2px dashed #d0d0d0;
-    border-radius: 12px;
-    padding: 24px 16px;
-    text-align: center;
-    color: #a0a0a5;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .upload-zone:active, .upload-zone.dragover {
-    border-color: #007aff;
-    background: #f0f5ff;
-    color: #007aff;
-  }
-  .upload-zone .uz-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-  }
-  .upload-zone .uz-text {
-    margin: 0;
-  }
-  .upload-zone .uz-sub {
-    margin: 4px 0 0;
-    font-size: 11px;
-  }
-  .preview-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .preview-item {
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    aspect-ratio: 1;
-  }
-  .preview-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .preview-item .pi-remove {
-    position: absolute;
-    top: 4px; right: 4px;
-    width: 24px; height: 24px;
-    border-radius: 12px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .as-detail-images {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .as-detail-images img {
-    width: 100%;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  .image-modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.9);
-    z-index: 300;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .image-modal img {
-    max-width: 95%;
-    max-height: 90vh;
-    object-fit: contain;
-  }
 
   /* 보유부품 */
   .stock-section {
@@ -1992,16 +1908,19 @@
     showLoading('점검 항목 불러오는 중');
     go('inspectForm');
     try {
-      // 점검 옵션과 기기 상세(보유부품)를 동시에 로드
-      const [optData, devData] = await Promise.all([
+      // 점검옵션 + 부품모델 + 보유부품재고를 동시에 로드
+      const deviceModel = state.inspectDevice.model || '';
+      const deviceSn = state.inspectDevice.sn || '';
+      const [optData, partsData, stockData] = await Promise.all([
         callApi('inspectOptions'),
-        callApi('device', { sn: state.inspectDevice.sn })
+        callApi('getPartModels', { model: deviceModel }),
+        callApi('getStock', { sn: deviceSn })
       ]);
       if (optData.error) throw new Error(optData.error);
-      // 기기의 보유부품 정보를 옵션에 합침
-      if (devData.device) {
-        optData.deviceStock = devData.device['보유부품'] || '';
-      }
+      optData.modelParts = partsData.modelParts || [];
+      optData.genericParts = partsData.genericParts || [];
+      optData.matchedModel = partsData.matchedModel || '';
+      optData.stock = stockData.stock || [];
       state.inspectOptions = optData;
       hideLoading();
       render();
@@ -2059,22 +1978,30 @@
       ('0' + today.getDate()).slice(-2);
 
     const items = opts.items || [];
-    const parts = opts.parts || [];
+    const modelParts = opts.modelParts || [];
+    const genericParts = opts.genericParts || [];
+    const matchedModel = opts.matchedModel || '';
+    const stock = opts.stock || [];
 
-    // 보유부품 파싱
-    const deviceStockStr = opts.deviceStock || '';
-    const deviceStock = {};
-    if (deviceStockStr.trim()) {
-      deviceStockStr.split(',').forEach(item => {
-        const p = item.trim().split(':');
-        if (p.length === 2) {
-          const name = p[0].trim();
-          const qty = parseInt(p[1].trim());
-          if (name && !isNaN(qty)) deviceStock[name] = qty;
-        }
-      });
-    }
-    const hasStock = Object.keys(deviceStock).length > 0;
+    // 모든 부품 합치기: 모델 매칭 부품 + 일반 부품
+    const allParts = [];
+    modelParts.forEach(p => {
+      allParts.push({ code: p['코드'], desc: p['설명'], label: p['코드'] + ' (' + p['설명'] + ')' });
+    });
+    genericParts.forEach(name => {
+      // 모델 부품과 중복되지 않는 것만 추가
+      const isDup = modelParts.some(mp => mp['설명'] === name || mp['코드'] === name);
+      if (!isDup) {
+        allParts.push({ code: '', desc: name, label: name });
+      }
+    });
+
+    // 보유부품 재고 맵 (코드 또는 설명 → 수량)
+    const stockMap = {};
+    stock.forEach(s => {
+      const key = s['코드'] || s['설명'];
+      if (key) stockMap[key] = s['수량'] || 0;
+    });
 
     return `
       <div class="header">
@@ -2085,7 +2012,7 @@
       <div class="form-section">
         <div class="form-target">
           <p class="company">${escapeHtml(cust['상호'] || '')}</p>
-          <p class="device">${escapeHtml(dev.model || '')} · ${escapeHtml(dev.sn || '')}</p>
+          <p class="device">${escapeHtml(dev.model || '')} · ${escapeHtml(dev.sn || '')}${matchedModel ? ' → ' + escapeHtml(matchedModel) : ''}</p>
         </div>
 
         <div class="form-field">
@@ -2122,44 +2049,42 @@
         </div>
 
         <div class="form-field">
-          <label>사용 부품 (수량 선택)</label>
-          <div id="f-parts">
-            ${parts.length === 0
-              ? '<div class="check-empty">사용부품 탭에 등록된 부품이 없습니다</div>'
-              : parts.map((p, i) => `
-                <div class="stock-input-row parts-row" data-name="${escapeHtml(p)}">
-                  <div class="si-left">
-                    <p class="si-name">${escapeHtml(p)}</p>
-                  </div>
-                  <div class="si-control">
-                    <button type="button" class="si-btn si-minus" disabled>−</button>
-                    <span class="si-val">0</span>
-                    <button type="button" class="si-btn si-plus">+</button>
-                  </div>
-                </div>
+          <label>사용 부품${matchedModel ? ' (' + escapeHtml(matchedModel) + ')' : ''}</label>
+          <div class="check-list" id="f-parts">
+            ${allParts.length === 0
+              ? '<div class="check-empty">등록된 부품이 없습니다</div>'
+              : allParts.map((p, i) => `
+                <label data-idx="${i}">
+                  <input type="checkbox" value="${escapeHtml(p.label)}" data-code="${escapeHtml(p.code)}" data-desc="${escapeHtml(p.desc)}">
+                  <span>${escapeHtml(p.label)}</span>
+                </label>
               `).join('')
             }
           </div>
         </div>
 
         <div class="form-field">
-          <label>보유부품 현황${hasStock ? ' (점검 후 실수량으로 수정)' : ''}</label>
+          <label>보유부품 현황 (점검 후 실수량으로 수정)</label>
           <div id="f-stock">
-            ${hasStock
-              ? Object.entries(deviceStock).map(([name, qty]) => `
-                <div class="stock-input-row" data-name="${escapeHtml(name)}">
+            ${allParts.length === 0
+              ? '<div class="check-empty">등록된 부품이 없습니다</div>'
+              : allParts.map((p, i) => {
+                const key = p.code || p.desc;
+                const currentQty = stockMap[key] !== undefined ? stockMap[key] : (stockMap[p.desc] !== undefined ? stockMap[p.desc] : 0);
+                return `
+                <div class="stock-input-row" data-code="${escapeHtml(p.code)}" data-desc="${escapeHtml(p.desc)}">
                   <div class="si-left">
-                    <p class="si-name">${escapeHtml(name)}</p>
-                    <p class="si-stock">기존: ${qty}개</p>
+                    <p class="si-name">${escapeHtml(p.label)}</p>
+                    <p class="si-stock">기존: ${currentQty}개</p>
                   </div>
                   <div class="si-control">
                     <button type="button" class="si-btn si-minus">−</button>
-                    <span class="si-val">${qty}</span>
+                    <span class="si-val">${currentQty}</span>
                     <button type="button" class="si-btn si-plus">+</button>
                   </div>
                 </div>
-              `).join('')
-              : '<div class="check-empty">이 기기에 등록된 보유부품이 없습니다.<br>기기 탭에서 보유부품 컬럼에 직접 입력하세요.</div>'
+                `;
+              }).join('')
             }
           </div>
         </div>
@@ -2230,8 +2155,9 @@
       });
     });
 
-    // 보유부품 +/- 버튼 (실수량 입력 - 제한 없이 자유롭게, 0 이상)
-    document.querySelectorAll('.stock-input-row:not(.parts-row)').forEach(row => {
+
+    // 보유부품 +/- 버튼 (실수량 입력)
+    document.querySelectorAll('#f-stock .stock-input-row').forEach(row => {
       const valEl = row.querySelector('.si-val');
       const minusBtn = row.querySelector('.si-minus');
       const plusBtn = row.querySelector('.si-plus');
@@ -2242,29 +2168,6 @@
         minusBtn.disabled = val <= 0;
       }
       updateVal();
-
-      minusBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (val > 0) { val--; updateVal(); }
-      });
-      plusBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        val++; updateVal();
-      });
-    });
-
-    // 사용부품 +/- 버튼 (0부터 시작, 제한 없음)
-    document.querySelectorAll('.parts-row').forEach(row => {
-      const valEl = row.querySelector('.si-val');
-      const minusBtn = row.querySelector('.si-minus');
-      const plusBtn = row.querySelector('.si-plus');
-      let val = 0;
-
-      function updateVal() {
-        valEl.textContent = val;
-        valEl.className = 'si-val' + (val > 0 ? ' nonzero' : '');
-        minusBtn.disabled = val <= 0;
-      }
 
       minusBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2290,25 +2193,22 @@
         document.querySelectorAll('#f-items input[type="checkbox"]:checked')
       ).map(cb => cb.value);
 
-      // 사용부품 수량 수집 (0보다 큰 것만)
-      const partsArr = [];
-      document.querySelectorAll('.parts-row').forEach(row => {
-        const name = row.getAttribute('data-name');
-        const val = parseInt(row.querySelector('.si-val').textContent) || 0;
-        if (val > 0) {
-          partsArr.push(name + ':' + val);
-        }
-      });
-      const checkedParts = partsArr;
+      // 사용부품: 체크된 부품 라벨 (콤마 구분)
+      const checkedParts = Array.from(
+        document.querySelectorAll('#f-parts input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
 
-      // 보유부품 실수량 수집 (전체 항목)
+      // 보유부품 실수량 수집
       const stockArr = [];
-      document.querySelectorAll('.stock-input-row').forEach(row => {
-        const name = row.getAttribute('data-name');
+      const stockJsonArr = [];
+      document.querySelectorAll('#f-stock .stock-input-row').forEach(row => {
+        const code = row.getAttribute('data-code') || '';
+        const desc = row.getAttribute('data-desc') || '';
         const val = parseInt(row.querySelector('.si-val').textContent) || 0;
-        stockArr.push(name + ':' + val);
+        const label = code ? code + '(' + desc + ')' : desc;
+        stockArr.push(label + ':' + val);
+        stockJsonArr.push({ '코드': code, '설명': desc, '수량': val });
       });
-      const stockStr = stockArr.join(', ');
 
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
@@ -2326,7 +2226,9 @@
           items: checkedItems.join(', '),
           parts: checkedParts.join(', '),
           memo: memo,
-          stock: stockStr
+          stock: stockArr.join(', '),
+          stockData: JSON.stringify(stockJsonArr)
+        });
         });
         if (result.success) {
           state.inspectOptions.saved = true;
@@ -2645,16 +2547,7 @@
           <textarea id="f-request" placeholder="고객 요청 내용을 입력하세요"></textarea>
         </div>
 
-        <div class="form-field">
-          <label>사진 첨부 (최대 5장)</label>
-          <div class="upload-zone" id="upload-zone">
-            <div class="uz-icon">📷</div>
-            <p class="uz-text">사진을 드래그하거나 터치해서 추가</p>
-            <p class="uz-sub">JPG, PNG · 자동 압축됨</p>
-          </div>
-          <input type="file" id="file-input" accept="image/*" multiple style="display:none;">
-          <div class="preview-grid" id="preview-grid"></div>
-        </div>
+
 
         <div class="form-field">
           <label>방문 요청일</label>
@@ -2686,7 +2579,6 @@
         state.asNewCustomer = null;
         state.asNewDevices = null;
         state.asNewSelectedSn = {};
-        state.asNewImages = [];
         loadAsList(state.asListStatus || '대기중');
       });
       return;
@@ -2695,66 +2587,6 @@
     document.getElementById('back-btn').addEventListener('click', () => {
       go('asNewSearch');
     });
-
-    // ---- 이미지 업로드 ----
-    if (!state.asNewImages) state.asNewImages = [];
-    const uploadZone = document.getElementById('upload-zone');
-    const fileInput = document.getElementById('file-input');
-    const previewGrid = document.getElementById('preview-grid');
-
-    function renderPreviews() {
-      if (!previewGrid) return;
-      previewGrid.innerHTML = state.asNewImages.map((img, i) => `
-        <div class="preview-item">
-          <img src="${img.preview}" alt="사진 ${i+1}">
-          <button class="pi-remove" data-idx="${i}">×</button>
-        </div>
-      `).join('');
-      // 삭제 버튼
-      previewGrid.querySelectorAll('.pi-remove').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'));
-          state.asNewImages.splice(idx, 1);
-          renderPreviews();
-        });
-      });
-      // 5장 이상이면 업로드 존 숨기기
-      if (uploadZone) {
-        uploadZone.style.display = state.asNewImages.length >= 5 ? 'none' : '';
-      }
-    }
-
-    async function addFiles(files) {
-      const remaining = 5 - state.asNewImages.length;
-      const toProcess = Array.from(files).slice(0, remaining);
-      for (const f of toProcess) {
-        if (!f.type.startsWith('image/')) continue;
-        try {
-          const compressed = await compressImage(f);
-          state.asNewImages.push(compressed);
-        } catch (e) {}
-      }
-      renderPreviews();
-    }
-
-    if (uploadZone) {
-      uploadZone.addEventListener('click', () => fileInput.click());
-      uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-      uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-      uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('dragover');
-        addFiles(e.dataTransfer.files);
-      });
-    }
-    if (fileInput) {
-      fileInput.addEventListener('change', () => {
-        addFiles(fileInput.files);
-        fileInput.value = '';
-      });
-    }
-    renderPreviews();
 
     // ---- 기기 선택 ----
     document.querySelectorAll('.device-multi-card').forEach(el => {
@@ -2836,46 +2668,10 @@
 
       const btn = document.getElementById('save-btn');
       btn.disabled = true;
+      btn.textContent = '저장 중...';
 
       try {
-        // 사진이 있으면 하나씩 POST 업로드
-        const imageIds = [];
-        if (state.asNewImages && state.asNewImages.length > 0) {
-          for (let i = 0; i < state.asNewImages.length; i++) {
-            btn.textContent = '사진 업로드 중 (' + (i+1) + '/' + state.asNewImages.length + ')...';
-            const img = state.asNewImages[i];
-            const uploadKey = 'UP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-            const fileName = img.fileName || ('photo_' + (i+1) + '.jpg');
-
-            // POST로 이미지 전송 (no-cors)
-            await fetch(API_URL + '?action=uploadImage&key=' + encodeURIComponent(uploadKey) + '&fileName=' + encodeURIComponent(fileName), {
-              method: 'POST',
-              mode: 'no-cors',
-              body: img.data
-            });
-
-            // 서버 처리 대기 후 결과 확인 (최대 5회 재시도)
-            let fileId = null;
-            for (let retry = 0; retry < 8; retry++) {
-              await new Promise(r => setTimeout(r, 2000));
-              try {
-                const check = await callApi('checkUpload', { key: uploadKey });
-                if (check.success && check.fileId) {
-                  fileId = check.fileId;
-                  break;
-                }
-              } catch (e) {}
-            }
-
-            if (fileId) {
-              imageIds.push(fileId);
-            } else {
-              showToast('사진 ' + (i+1) + ' 업로드 실패');
-            }
-          }
-        }
-
-        btn.textContent = '저장 중...';
+        // AS 접수 저장
         const result = await callApi('saveAs', {
           receiver: state.user.name,
           category: category,
@@ -2885,14 +2681,12 @@
           modelList: selectedModels.join(', '),
           request: request,
           visitWhen: visitWhen,
-          assignee: assignee,
-          photos: imageIds.join(',')
+          assignee: assignee
         });
 
         if (result.success) {
           state.asNewSaved = true;
           state.asNewSavedId = result['접수ID'];
-          state.asNewImages = [];
           render();
         } else {
           showToast('저장 실패: ' + (result.error || '알 수 없는 오류'));
@@ -2994,16 +2788,7 @@
         <p class="section-title">요청사항</p>
         <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:14px; margin-bottom:20px; font-size:14px; line-height:1.6; white-space:pre-wrap;">${escapeHtml(it['요청사항'] || '(없음)')}</div>
 
-        ${(() => {
-          const photos = (it['첨부사진'] || '').split(',').map(id => id.trim()).filter(Boolean);
-          if (photos.length === 0) return '';
-          return `
-            <p class="section-title">첨부 사진 ${photos.length}장</p>
-            <div class="as-detail-images">
-              ${photos.map(id => `<img src="https://drive.google.com/thumbnail?id=${escapeHtml(id)}&sz=w400" data-full="https://drive.google.com/thumbnail?id=${escapeHtml(id)}&sz=w1200" alt="첨부사진" loading="lazy">`).join('')}
-            </div>
-          `;
-        })()}
+
 
         ${status !== '완료' ? `
         <button class="btn-primary" id="goto-inspect-btn" style="margin-bottom:24px; background:#0f6e56;">점검 등록하기</button>
@@ -3030,16 +2815,10 @@
     // 점검 등록하기 버튼
     const inspectBtn = document.getElementById('goto-inspect-btn');
 
-    // 이미지 클릭 → 확대 보기
-    document.querySelectorAll('.as-detail-images img').forEach(img => {
-      img.addEventListener('click', () => {
-        const modal = document.createElement('div');
-        modal.className = 'image-modal';
-        modal.innerHTML = `<img src="${img.getAttribute('data-full') || img.src}">`;
-        modal.addEventListener('click', () => modal.remove());
-        document.body.appendChild(modal);
-      });
-    });
+
+    // 점검 등록하기 버튼
+    const inspectBtn = document.getElementById('goto-inspect-btn');
+
     if (inspectBtn) {
       inspectBtn.addEventListener('click', async () => {
         const it = data.item;
@@ -3362,9 +3141,13 @@
     showLoading('기기 정보 불러오는 중');
     go('device', { currentDevice: { loading: true, sn: sn } });
     try {
-      const data = await callApi('device', { sn: sn });
+      const [data, stockData] = await Promise.all([
+        callApi('device', { sn: sn }),
+        callApi('getStock', { sn: sn })
+      ]);
       hideLoading();
       if (data.error) throw new Error(data.error);
+      data.stockItems = stockData.stock || [];
       state.currentDevice = data;
       render();
     } catch (e) {
@@ -3409,30 +3192,24 @@
     }
     const feeFormatted = d['임대료'] ? formatNumber(d['임대료']) + '원' : '';
 
-    // 보유부품 파싱
-    const stockStr = d['보유부품'] || '';
+    // 보유부품 재고 (보유부품재고 탭에서)
+    const stockItems = c.stockItems || [];
     let stockHtml = '';
-    if (stockStr.trim()) {
-      const stockItems = stockStr.split(',').map(item => {
-        const parts = item.trim().split(':');
-        if (parts.length === 2) {
-          return { name: parts[0].trim(), qty: parseInt(parts[1].trim()) || 0 };
-        }
-        return null;
-      }).filter(Boolean);
-      if (stockItems.length > 0) {
-        stockHtml = `
-          <p class="section-title">보유 부품</p>
-          <div class="stock-section">
-            ${stockItems.map(s => `
+    if (stockItems.length > 0) {
+      stockHtml = `
+        <p class="section-title">보유 부품</p>
+        <div class="stock-section">
+          ${stockItems.map(s => {
+            const label = s['코드'] ? s['코드'] + ' (' + s['설명'] + ')' : s['설명'];
+            return `
               <div class="stock-row">
-                <span class="s-name">${escapeHtml(s.name)}</span>
-                <span class="s-qty ${s.qty === 0 ? 'zero' : ''}">${s.qty}개</span>
+                <span class="s-name">${escapeHtml(label)}</span>
+                <span class="s-qty ${s['수량'] === 0 ? 'zero' : ''}">${s['수량']}개</span>
               </div>
-            `).join('')}
-          </div>
-        `;
-      }
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
     return `
@@ -3570,41 +3347,7 @@
     if (existing) existing.remove();
   }
 
-  // 이미지 압축 (max 600px, JPEG 50% - GET URL 크기 제한에 맞게)
-  function compressImage(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          let w = img.width;
-          let h = img.height;
-          const maxSize = 600;
-          if (w > maxSize || h > maxSize) {
-            if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
-            else { w = Math.round(w * maxSize / h); h = maxSize; }
-          }
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-          const base64 = dataUrl.split(',')[1];
-          resolve({
-            data: base64,
-            mimeType: 'image/jpeg',
-            preview: dataUrl,
-            fileName: file.name.replace(/\.[^.]+$/, '.jpg')
-          });
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
+
 
   // ============================================
   // 시작
@@ -3615,6 +3358,8 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+
+
 </script>
 </body>
 </html>

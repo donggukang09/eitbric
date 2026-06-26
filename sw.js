@@ -1,5 +1,5 @@
 // 이이티브릭 Service Worker
-const CACHE_NAME = 'eitbric-v9';
+const CACHE_NAME = 'eitbric-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -32,6 +32,7 @@ self.addEventListener('fetch', (e) => {
   if (
     url.hostname.includes('googleapis.com') ||
     url.hostname.includes('script.google.com') ||
+    url.hostname.includes('script.googleusercontent.com') ||
     url.hostname.includes('docs.google.com')
   ) {
     return;
