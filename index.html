@@ -1908,20 +1908,11 @@
     showLoading('점검 항목 불러오는 중');
     go('inspectForm');
     try {
-      // 점검옵션 + 부품모델 + 보유부품재고를 동시에 로드
       const deviceModel = state.inspectDevice.model || '';
       const deviceSn = state.inspectDevice.sn || '';
-      const [optData, partsData, stockData] = await Promise.all([
-        callApi('inspectOptions'),
-        callApi('getPartModels', { model: deviceModel }),
-        callApi('getStock', { sn: deviceSn })
-      ]);
-      if (optData.error) throw new Error(optData.error);
-      optData.modelParts = partsData.modelParts || [];
-      optData.genericParts = partsData.genericParts || [];
-      optData.matchedModel = partsData.matchedModel || '';
-      optData.stock = stockData.stock || [];
-      state.inspectOptions = optData;
+      const data = await callApi('inspectFormData', { model: deviceModel, sn: deviceSn });
+      if (data.error) throw new Error(data.error);
+      state.inspectOptions = data;
       hideLoading();
       render();
     } catch (e) {
